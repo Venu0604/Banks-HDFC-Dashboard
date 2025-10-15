@@ -3,6 +3,7 @@ config.yaml
 *.pem
 *.key
 .env
+config/secrets.py
 
 # Python
 __pycache__/
@@ -14,6 +15,9 @@ __pycache__/
 venv/
 ENV/
 env/
+build/
+dist/
+*.egg-info/
 
 # Streamlit
 .streamlit/
@@ -24,7 +28,7 @@ env/
 *.swp
 *.swo
 *~
-.DS_Store
+.claude/
 
 # Data files
 *.csv
@@ -32,6 +36,9 @@ env/
 *.xls
 *.db
 *.sqlite
+*.sqlite3
+data/
+temp/
 
 # Logs
 *.log
@@ -40,3 +47,7 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Test files
+test/
+tests/

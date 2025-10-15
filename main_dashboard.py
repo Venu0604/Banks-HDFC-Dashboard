@@ -4,446 +4,339 @@ Modern, Professional Interface
 """
 
 import streamlit as st
-from sqlalchemy import create_engine
+import pandas as pd
 from pathlib import Path
+import sys
+import os
 
-# Import individual modules
-import phone_numbers
-import HDFC_campaign
-import google_summary
-import status_analysis
-import Input_MIS
-import sql_console
+# Add project root to path
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# Import configuration
+from config import APP_TITLE, APP_ICON, PAGE_LAYOUT
+from database.connection import get_db_engine
+
+# Import modules
+from modules import phone_numbers
+from modules import HDFC_campaign
+from modules import google_summary
+from modules import status_analysis
+from modules import Input_MIS
+from modules import sql_console
 
 # -------------------------
 # Page Configuration
 # -------------------------
 st.set_page_config(
-    page_title="HDFC Analytics Dashboard",
-    layout="wide",
-    page_icon="🏦",
+    page_title=APP_TITLE,
+    layout=PAGE_LAYOUT,
+    page_icon=APP_ICON,
     initial_sidebar_state="collapsed"
 )
 
+# -------------------------
+# Custom Styling (Dark Bank Theme)
+# -------------------------
+st.markdown("""<style>
+/* Main Theme Colors */
+:root {
+    --primary-color: #004C8C;
+    --secondary-color: #ED1C24;
+    --background-dark: #0E1117;
+    --text-light: #FAFAFA;
+}
+
+/* Overall Background */
+.stApp {
+    background: linear-gradient(135deg, #0E1117 0%, #1a1f2e 100%);
+}
+
+/* Balanced Container Spacing */
+.block-container {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1rem !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+    max-width: 100% !important;
+}
+
+/* Balanced Section Spacing */
+div[data-testid="stVerticalBlock"] > div {
+    gap: 0.75rem !important;
+}
+
+/* Header Styling */
+h1, h2, h3, h4 {
+    color: var(--text-light) !important;
+    font-weight: 600 !important;
+    margin-top: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+h1 {
+    font-size: 2rem !important;
+}
+
+h2 {
+    font-size: 1.6rem !important;
+}
+
+h3 {
+    font-size: 1.3rem !important;
+}
+
+h4 {
+    font-size: 1.1rem !important;
+}
+
+/* Horizontal Rule Spacing */
+hr {
+    margin-top: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+}
+
+/* Metric Cards */
+[data-testid="stMetricValue"] {
+    font-size: 1.8rem !important;
+    font-weight: 700 !important;
+    color: #fff !important;
+}
+
+[data-testid="stMetric"] {
+    padding: 0.75rem !important;
+}
+
+[data-testid="stMetricLabel"] {
+    font-size: 1rem !important;
+}
+
+/* Navigation Buttons */
+.stButton>button {
+    background: linear-gradient(90deg, var(--primary-color), #0066CC);
+    color: white !important;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.stButton>button:hover {
+    background: linear-gradient(90deg, #0066CC, var(--primary-color));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(237, 28, 36, 0.3);
+}
+
+/* Selectbox */
+.stSelectbox {
+    color: white !important;
+}
+
+.stSelectbox label {
+    font-size: 0.95rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* Info Boxes */
+.stAlert {
+    border-radius: 10px;
+    border-left: 4px solid var(--secondary-color);
+    padding: 0.75rem 1rem !important;
+    margin: 0.75rem 0 !important;
+}
+
+/* Dataframes */
+.dataframe {
+    border-radius: 8px;
+    font-size: 0.95rem !important;
+}
+
+[data-testid="stDataFrame"] {
+    margin: 1rem 0 !important;
+}
+
+/* File Uploader */
+[data-testid="stFileUploader"] {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 1rem;
+    margin: 0.75rem 0 !important;
+}
+
+/* Tabs */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 6px;
+    padding-top: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.stTabs [data-baseweb="tab"] {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px 8px 0 0;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+}
+
+.stTabs [aria-selected="true"] {
+    background: linear-gradient(90deg, var(--primary-color), #0066CC);
+    font-weight: 600;
+}
+
+/* Expanders */
+.streamlit-expanderHeader {
+    padding: 0.75rem 1rem !important;
+    font-size: 1rem !important;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-radius: 8px;
+}
+
+.streamlit-expanderContent {
+    padding: 1rem !important;
+    margin-top: 0.5rem;
+}
+
+/* Column Spacing */
+div[data-testid="column"] {
+    padding: 0 0.75rem !important;
+}
+
+/* Form Elements */
+.stCheckbox, .stRadio {
+    padding: 0.25rem 0 !important;
+}
+
+.stCheckbox label, .stRadio label {
+    font-size: 0.95rem !important;
+}
+
+/* Markdown Spacing */
+.stMarkdown {
+    margin-bottom: 0.5rem !important;
+}
+
+.stMarkdown p {
+    margin-bottom: 0.5rem !important;
+}
+
+/* Input Fields */
+.stDateInput, .stNumberInput, .stTextInput {
+    margin-bottom: 0.5rem !important;
+}
+
+.stDateInput label, .stNumberInput label, .stTextInput label {
+    margin-bottom: 0.5rem !important;
+}
+
+/* Plotly Charts */
+.js-plotly-plot {
+    margin: 1rem 0 !important;
+}
+
+/* Multiselect */
+.stMultiSelect label {
+    font-size: 0.95rem !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* Caption Text */
+.caption {
+    font-size: 0.85rem !important;
+    line-height: 1.4 !important;
+}
+
+/* Improve Readability */
+body {
+    line-height: 1.6 !important;
+}
+
+/* Ensure all text is visible */
+* {
+    overflow: visible !important;
+}
+
+/* Fix any truncated content */
+.element-container {
+    overflow: visible !important;
+}
+</style>""", unsafe_allow_html=True)
 
 # -------------------------
-# Modern Grayish Bank Dashboard Styling
+# Date Filter Function
 # -------------------------
-st.markdown("""
-    <style>
-    /* Import Google Fonts */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+def apply_date_filter(df):
+    """Apply date filter based on session state"""
+    if not st.session_state.get('date_filter_enabled', False) or df is None:
+        return df
 
-    /* Global Styles - Dark Gray Bank Theme */
-    * {
-        font-family: 'Inter', sans-serif;
-    }
+    start_date = st.session_state.get('date_filter_start')
+    end_date = st.session_state.get('date_filter_end')
+    if not start_date or not end_date:
+        return df
 
-    .main {
-        background: linear-gradient(180deg, #111827 0%, #1f2937 50%, #111827 100%);
-        color: #ffffff;
-    }
+    date_col = st.session_state.get('selected_date_column')
+    if not date_col:
+        date_col = next((c for c in df.columns if 'date' in c.lower() or 'time' in c.lower()), None)
+    if not date_col or date_col not in df.columns:
+        return df
 
-    /* Header Styles - White on Dark */
-    .main-header {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #ffffff;
-        text-align: center;
-        margin: 0;
-        padding: 0;
-        letter-spacing: -0.5px;
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    }
-
-    .sub-header {
-        text-align: center;
-        color: #d1d5db;
-        margin-top: 0.5rem;
-        margin-bottom: 2rem;
-        font-size: 1rem;
-        font-weight: 400;
-    }
-
-    /* Metric Cards - White Cards with Glassmorphism */
-    .stMetric {
-        background: linear-gradient(135deg, #374151 0%, #4b5563 100%);
-        padding: 1.8rem;
-        border-radius: 16px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        transition: all 0.3s ease;
-        border: 1px solid #4b5563;
-        backdrop-filter: blur(10px);
-    }
-
-    .stMetric:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
-        border-color: #6b7280;
-        background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%);
-    }
-
-    .stMetric label {
-        color: #d1d5db !important;
-        font-weight: 500 !important;
-        font-size: 0.85rem !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    .stMetric [data-testid="stMetricValue"] {
-        color: #ffffff !important;
-        font-size: 2.5rem !important;
-        font-weight: 700 !important;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    .stMetric [data-testid="stMetricDelta"] {
-        font-weight: 500 !important;
-        color: #10b981 !important;
-    }
-
-    /* Headings - White/Light Gray */
-    h1, h2, h3 {
-        color: #ffffff !important;
-        font-weight: 700 !important;
-        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-    }
-
-    h4, h5, h6 {
-        color: #e5e7eb !important;
-        font-weight: 600 !important;
-    }
-
-    /* Tabs - Gray Gradient with Purple Active */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 8px;
-        background: rgba(55, 65, 81, 0.3);
-        padding: 8px;
-        border-radius: 12px;
-        backdrop-filter: blur(10px);
-        border: 1px solid #374151;
-    }
-
-    .stTabs [data-baseweb="tab-list"] button {
-        color: #9ca3af !important;
-        font-weight: 500 !important;
-        font-size: 0.95rem !important;
-        border-radius: 8px !important;
-        padding: 12px 24px !important;
-        transition: all 0.3s ease !important;
-        border: none !important;
-        background: transparent !important;
-    }
-
-    .stTabs [data-baseweb="tab-list"] button:hover {
-        background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%) !important;
-        color: #ffffff !important;
-    }
-
-    .stTabs [data-baseweb="tab-list"] button[aria-selected="true"] {
-        background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%) !important;
-        color: #ffffff !important;
-        box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4) !important;
-    }
-
-    /* Buttons - Professional Banking Style */
-    .stButton button {
-        border-radius: 8px !important;
-        font-weight: 500 !important;
-        padding: 0.6rem 1.2rem !important;
-        transition: all 0.25s ease !important;
-        border: 1px solid #4b5563 !important;
-        box-shadow: none !important;
-        background: #374151 !important;
-        color: #e5e7eb !important;
-        font-size: 0.95rem !important;
-    }
-
-    .stButton button:hover {
-        background: #4b5563 !important;
-        color: #ffffff !important;
-        border-color: #6b7280 !important;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
-    }
-
-    .stButton button[kind="primary"] {
-        background: #4b5563 !important;
-        color: #ffffff !important;
-        border: 1px solid #6b7280 !important;
-        font-weight: 600 !important;
-    }
-
-    .stButton button[kind="primary"]:hover {
-        background: #6b7280 !important;
-        border-color: #9ca3af !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25) !important;
-    }
-
-    /* Secondary button style (for non-active state) */
-    .stButton button[kind="secondary"] {
-        background: transparent !important;
-        color: #9ca3af !important;
-        border: 1px solid #374151 !important;
-    }
-
-    .stButton button[kind="secondary"]:hover {
-        background: #374151 !important;
-        color: #e5e7eb !important;
-        border-color: #4b5563 !important;
-    }
-
-    /* Compact Icon Home Button */
-    button[key="home_icon"] {
-        min-width: 50px !important;
-        width: 50px !important;
-        height: 50px !important;
-        padding: 0 !important;
-        border-radius: 10px !important;
-        font-size: 1.6rem !important;
-        background: #374151 !important;
-        border: 1px solid #4b5563 !important;
-        color: #e5e7eb !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-    }
-
-    button[key="home_icon"]:hover {
-        background: #4b5563 !important;
-        border-color: #6b7280 !important;
-        color: #ffffff !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-    }
-
-    .stDownloadButton button {
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
-        color: white !important;
-        box-shadow: 0 4px 20px rgba(16, 185, 129, 0.3) !important;
-    }
-
-    .stDownloadButton button:hover {
-        background: linear-gradient(135deg, #059669 0%, #10b981 100%) !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 24px rgba(16, 185, 129, 0.4) !important;
-    }
-
-    /* Alert Boxes - Glassmorphism */
-    .stAlert {
-        border-radius: 12px !important;
-        border: 1px solid #374151 !important;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3) !important;
-        background: rgba(55, 65, 81, 0.6) !important;
-        backdrop-filter: blur(10px) !important;
-        color: #e5e7eb !important;
-    }
-
-    /* DataFrames - White Cards with Shadow */
-    .stDataFrame {
-        border-radius: 16px !important;
-        overflow: hidden !important;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
-        border: 1px solid #374151 !important;
-        background: #1f2937 !important;
-    }
-
-    /* Expander - Gray Gradient */
-    .streamlit-expanderHeader {
-        background: linear-gradient(135deg, #374151 0%, #4b5563 100%) !important;
-        border-radius: 12px !important;
-        font-weight: 600 !important;
-        color: #ffffff !important;
-        border: 1px solid #4b5563 !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
-    }
-
-    .streamlit-expanderHeader:hover {
-        background: linear-gradient(135deg, #4b5563 0%, #6b7280 100%) !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
-    }
-
-    /* File Uploader - Gray Card */
-    .stFileUploader {
-        background: rgba(31, 41, 55, 0.8) !important;
-        border-radius: 12px !important;
-        border: 2px dashed #6b7280 !important;
-        padding: 1.5rem !important;
-        backdrop-filter: blur(10px) !important;
-    }
-
-    .stFileUploader:hover {
-        border-color: #8b5cf6 !important;
-    }
-
-    /* Section Divider - Gray Gradient */
-    .section-divider {
-        height: 2px;
-        background: linear-gradient(90deg, transparent, #6b7280, transparent);
-        margin: 2rem 0;
-    }
-
-    /* Input Fields - Dark Theme */
-    .stTextInput input, .stSelectbox select, .stDateInput input {
-        background: #374151 !important;
-        color: #ffffff !important;
-        border: 1px solid #4b5563 !important;
-        border-radius: 8px !important;
-    }
-
-    .stTextInput input:focus, .stSelectbox select:focus, .stDateInput input:focus {
-        border-color: #8b5cf6 !important;
-        box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2) !important;
-    }
-
-    /* Navigation Dropdown Styling */
-    .stSelectbox > div > div {
-        background: #374151 !important;
-        border: 1px solid #4b5563 !important;
-        border-radius: 10px !important;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
-    }
-
-    .stSelectbox [data-baseweb="select"] > div {
-        background: #374151 !important;
-        border-color: #4b5563 !important;
-        color: #d1d5db !important;
-        border-radius: 10px !important;
-    }
-
-    .stSelectbox [data-baseweb="select"]:hover > div {
-        background: #4b5563 !important;
-        border-color: #6b7280 !important;
-        color: #ffffff !important;
-    }
-
-    /* Dropdown menu options */
-    [data-baseweb="popover"] {
-        background: #1f2937 !important;
-        border: 1px solid #374151 !important;
-    }
-
-    [role="listbox"] {
-        background: #1f2937 !important;
-    }
-
-    [role="option"] {
-        background: #1f2937 !important;
-        color: #d1d5db !important;
-    }
-
-    [role="option"]:hover {
-        background: #374151 !important;
-        color: #ffffff !important;
-    }
-
-    /* Sidebar - Dark Gray */
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1f2937 0%, #111827 100%) !important;
-    }
-
-    /* Success/Info/Warning/Error Colors */
-    .stSuccess {
-        background: rgba(16, 185, 129, 0.2) !important;
-        color: #10b981 !important;
-    }
-
-    .stInfo {
-        background: rgba(139, 92, 246, 0.2) !important;
-        color: #8b5cf6 !important;
-    }
-
-    .stWarning {
-        background: rgba(251, 191, 36, 0.2) !important;
-        color: #fbbf24 !important;
-    }
-
-    .stError {
-        background: rgba(239, 68, 68, 0.2) !important;
-        color: #ef4444 !important;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-
-# -------------------------
-# Database Connection
-# -------------------------
-@st.cache_resource
-def get_db_engine():
-    """Initialize database connection"""
     try:
-        engine = create_engine("postgresql+psycopg2://postgres:1234@localhost:5432/Nxtify")
-        with engine.connect() as conn:
-            pass
-        return engine, None
+        df_filtered = df.copy()
+        df_filtered[date_col] = pd.to_datetime(df_filtered[date_col], errors='coerce')
+        mask = (df_filtered[date_col] >= pd.to_datetime(start_date)) & \
+               (df_filtered[date_col] <= pd.to_datetime(end_date))
+        return df_filtered[mask]
     except Exception as e:
-        return None, str(e)
-
-
-@st.cache_data
-def load_image(image_path):
-    """Load and cache images for faster display"""
-    from pathlib import Path
-    if Path(image_path).exists():
-        return str(image_path)
-    return None
-
+        st.error(f"Date filter error: {str(e)}")
+        return df
 
 # -------------------------
 # Main Dashboard
 # -------------------------
 def main():
     """Main dashboard orchestrator"""
-    import pandas as pd
+    # Initialize session state
+    for key, default in [
+        ('mis_data', None), ('mis_filename', None), ('mis_source', None),
+        ('date_filter_enabled', False), ('date_filter_start', None),
+        ('date_filter_end', None), ('selected_module', None),
+        ('nav_dropdown_widget', "Select Module...")
+    ]:
+        if key not in st.session_state:
+            st.session_state[key] = default
 
-    # Get database engine
-    engine, error = get_db_engine()
+    # Database connection
+    engine, db_error = get_db_engine()
 
-    # Header with Logo and module images on extreme left
+    # -------------------------
+    # Header
+    # -------------------------
     col1, col2, col3 = st.columns([1.5, 3, 1.5])
 
     with col1:
-        # Show logo and module-specific image stacked vertically
-        logo_path = Path("Public/hdfc credit .png")
+        logo_path = Path("assets/images/hdfc credit .png")
         if logo_path.exists():
-            cached_logo = load_image(str(logo_path))
-            if cached_logo:
-                st.image(cached_logo, width=150)
+            st.image(str(logo_path), width=150)
 
-        # Module-specific banner image below logo
-        if st.session_state.get('selected_module') is None:
-            banner_path = Path("Public/HDFC-Credit-Cards.png")
-            if banner_path.exists():
-                cached_banner = load_image(str(banner_path))
-                if cached_banner:
-                    st.image(cached_banner, width=150)
-        elif st.session_state.get('selected_module') == "google":
-            banner_files = list(Path("Public").glob("GoogleAdd*HDFC.png"))
-            if banner_files and banner_files[0].exists():
-                cached_banner = load_image(str(banner_files[0]))
-                if cached_banner:
-                    st.image(cached_banner, width=150)
-        elif st.session_state.get('selected_module') == "campaign":
-            banner_path = Path("Public/HDFC campaign Analysis.png")
-            if banner_path.exists():
-                cached_banner = load_image(str(banner_path))
-                if cached_banner:
-                    st.image(cached_banner, width=150)
+        banner_path = None
+        module = st.session_state.get('selected_module')
+        if module is None:
+            banner_path = Path("assets/images/HDFC-Credit-Cards.png")
+        elif module == "campaign":
+            banner_path = Path("assets/images/HDFC campaign Analysis.png")
+
+        if banner_path and banner_path.exists():
+            st.image(str(banner_path), width=150)
 
     with col2:
-        st.markdown("<h1 style='text-align: center; color: #ffffff; font-weight: 700; font-size: 2.2rem; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);'>HDFC Analytics Dashboard</h1>", unsafe_allow_html=True)
+        st.markdown(
+            f"<h1 style='text-align:center;color:#fff;'>{APP_TITLE}</h1>",
+            unsafe_allow_html=True
+        )
 
     with col3:
-        if engine:
-            st.markdown("🟢 **DB Connected**")
-        else:
-            st.markdown("🔴 **DB Error**")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        if 'selected_module' not in st.session_state:
-            st.session_state.selected_module = None
+        st.markdown("🟢 **DB Connected**" if engine else "🔴 **DB Error**")
 
         nav_options = {
             "Select Module...": None,
@@ -459,18 +352,16 @@ def main():
         with nav_row[0]:
             if st.button("🏠", key="home_icon", help="Dashboard Home", use_container_width=False):
                 st.session_state.selected_module = None
+                st.session_state.nav_dropdown_widget = "Select Module..."
                 st.rerun()
 
         with nav_row[1]:
-            if st.session_state.selected_module is None:
-                current_label = "Select Module..."
-            else:
-                current_label = [k for k, v in nav_options.items() if v == st.session_state.selected_module][0]
+            current_label = [k for k, v in nav_options.items() if v == module][0] if module else "Select Module..."
 
             def update_module():
-                selected_value = nav_options[st.session_state.nav_dropdown_widget]
-                if selected_value != st.session_state.selected_module:
-                    st.session_state.selected_module = selected_value
+                sel = nav_options.get(st.session_state.nav_dropdown_widget)
+                if sel != st.session_state.selected_module:
+                    st.session_state.selected_module = sel
 
             st.selectbox(
                 "Modules",
@@ -481,159 +372,118 @@ def main():
                 on_change=update_module
             )
 
-    # Divider
-    st.markdown("---")
+    st.markdown("<hr style='margin:0.75rem 0'>", unsafe_allow_html=True)
 
-    # Initialize session state for MIS data
-    if 'mis_data' not in st.session_state:
-        st.session_state.mis_data = None
-    if 'mis_filename' not in st.session_state:
-        st.session_state.mis_filename = None
-    if 'mis_source' not in st.session_state:
-        st.session_state.mis_source = None
-    if 'data_preloaded' not in st.session_state:
-        st.session_state.data_preloaded = False
+    # -------------------------
+    # Date Filter
+    # -------------------------
+    st.markdown("### 📅 Date Filter")
+    filter_cols = st.columns([1, 2, 1.5, 1.5, 2])
+    fc1, fc2, fc3, fc4, fc5 = filter_cols
 
-    # Preload data from database on first run
-    if not st.session_state.data_preloaded and engine:
-        try:
-            import pandas as pd
-            query = 'SELECT * FROM "HDFC_MIS_Data"'
-            df_mis = pd.read_sql(query, engine)
-            if len(df_mis) > 0:
-                df_mis.columns = df_mis.columns.str.strip()
-                st.session_state.mis_data = df_mis
-                st.session_state.mis_filename = "Database"
-                st.session_state.mis_source = "database"
-                st.session_state.data_preloaded = True
-        except:
-            pass  # Table might not exist, user can upload manually
+    with fc1:
+        st.session_state.date_filter_enabled = st.checkbox(
+            "Enable Filter",
+            value=st.session_state.date_filter_enabled
+        )
 
-    # Two columns: Left sidebar for data source, Right main content area
+    if st.session_state.date_filter_enabled and st.session_state.mis_data is not None:
+        date_columns = [c for c in st.session_state.mis_data.columns if 'date' in c.lower() or 'time' in c.lower()]
+        if date_columns:
+            with fc2:
+                selected_date_col = st.selectbox("Date Column", date_columns, key="date_column_select")
+                st.session_state.selected_date_column = selected_date_col
+
+            try:
+                dates = pd.to_datetime(st.session_state.mis_data[selected_date_col], errors='coerce')
+                min_date, max_date = dates.min(), dates.max()
+                if pd.notna(min_date) and pd.notna(max_date):
+                    with fc3:
+                        st.session_state.date_filter_start = st.date_input(
+                            "From Date", value=st.session_state.date_filter_start or min_date,
+                            min_value=min_date, max_value=max_date
+                        )
+                    with fc4:
+                        st.session_state.date_filter_end = st.date_input(
+                            "To Date", value=st.session_state.date_filter_end or max_date,
+                            min_value=min_date, max_value=max_date
+                        )
+                    with fc5:
+                        filtered_count = len(apply_date_filter(st.session_state.mis_data))
+                        total_count = len(st.session_state.mis_data)
+                        st.info(f"📊 **{filtered_count:,}** / **{total_count:,}** records")
+                else:
+                    with fc2:
+                        st.warning("⚠️ No valid dates")
+            except Exception as e:
+                with fc2:
+                    st.error(f"❌ {str(e)[:30]}")
+        else:
+            with fc2:
+                st.warning("⚠️ No date columns")
+    elif st.session_state.date_filter_enabled and st.session_state.mis_data is None:
+        with fc2:
+            st.info("ℹ️ Load data first")
+
+    st.markdown("<hr style='margin:0.75rem 0'>", unsafe_allow_html=True)
+
+    # -------------------------
+    # Sidebar & Main Area
+    # -------------------------
     sidebar_col, main_col = st.columns([1, 4])
 
     with sidebar_col:
         st.markdown("### 📁 Data Source")
-
-        # MIS source selection dropdown
         mis_options = ["Current Data", "📁 Upload New File", "🗄️ Reload from Database"]
+        selected_source = st.selectbox("Choose Action", options=mis_options, key="mis_source_selector", label_visibility="collapsed")
 
-        selected_source = st.selectbox(
-            "Choose Action",
-            options=mis_options,
-            key="mis_source_selector",
-            label_visibility="collapsed"
-        )
-
-        # Handle file upload
         if selected_source == "📁 Upload New File":
-            mis_file = st.file_uploader(
-                "Upload Excel",
-                type=["xlsx"],
-                key="main_mis_upload",
-                label_visibility="collapsed"
-            )
-
+            mis_file = st.file_uploader("Upload Excel", type=["xlsx"], key="main_mis_upload", label_visibility="collapsed")
             if mis_file:
                 with st.spinner("Loading..."):
-                    import pandas as pd
                     df_mis = pd.read_excel(mis_file, sheet_name="Sheet1")
                     df_mis.columns = df_mis.columns.str.strip()
-                    st.session_state.mis_data = df_mis
-                    st.session_state.mis_filename = mis_file.name
-                    st.session_state.mis_source = "file"
+                    st.session_state.update({'mis_data': df_mis, 'mis_filename': mis_file.name, 'mis_source': 'file'})
                     st.success(f"✅ {len(df_mis):,} records")
                     st.rerun()
 
-        # Handle database reload
-        elif selected_source == "🗄️ Reload from Database":
+        elif selected_source == "🗄️ Reload from Database" and engine:
             if st.button("Load Now", use_container_width=True, type="primary"):
-                if engine:
-                    with st.spinner("Loading..."):
-                        try:
-                            import pandas as pd
-                            query = 'SELECT * FROM "HDFC_MIS_Data"'
-                            df_mis = pd.read_sql(query, engine)
-                            df_mis.columns = df_mis.columns.str.strip()
-                            st.session_state.mis_data = df_mis
-                            st.session_state.mis_filename = "Database"
-                            st.session_state.mis_source = "database"
-                            st.success(f"✅ {len(df_mis):,} records")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Error: {str(e)[:30]}")
-                else:
-                    st.error("DB not available")
+                with st.spinner("Loading..."):
+                    try:
+                        df_mis = pd.read_sql('SELECT * FROM "HDFC_MIS_Data"', engine)
+                        df_mis.columns = df_mis.columns.str.strip()
+                        st.session_state.update({'mis_data': df_mis, 'mis_filename': 'Database', 'mis_source': 'database'})
+                        st.success(f"✅ {len(df_mis):,} records")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error: {str(e)[:50]}")
 
-        # Show current data info
-        st.markdown("---")
+        st.markdown("<hr style='margin:0.75rem 0'>", unsafe_allow_html=True)
         if st.session_state.mis_data is not None:
             st.markdown("**📊 Current Data**")
             source_icon = "📁" if st.session_state.mis_source == "file" else "🗄️"
             st.caption(f"{source_icon} {st.session_state.mis_filename}")
-            st.caption(f"📊 {len(st.session_state.mis_data):,} records")
-
-            # Show last DB update time
-            if engine and st.session_state.mis_source == "database":
-                try:
-                    import pandas as pd
-                    query = """
-                    SELECT updated_at
-                    FROM "MIS_Update_Log"
-                    WHERE table_name = 'HDFC_MIS_Data'
-                    ORDER BY updated_at DESC
-                    LIMIT 1
-                    """
-                    last_update_df = pd.read_sql(query, engine)
-                    if len(last_update_df) > 0:
-                        update_time = pd.to_datetime(last_update_df.iloc[0]['updated_at'])
-                        st.caption(f"🕐 {update_time.strftime('%Y-%m-%d %H:%M')}")
-                except:
-                    pass
+            st.caption(f"{len(st.session_state.mis_data):,} records")
         else:
             st.caption("⚠️ No data loaded")
 
-    # Main Content Based on Selection
     with main_col:
-        if st.session_state.mis_data is not None:
-            # Show different content based on selected module
-            if st.session_state.selected_module is None:
-                # Dashboard View - Show Status Analysis
-                status_analysis.render_status_analysis_module(st.session_state.mis_data, engine)
+        filtered_data = apply_date_filter(st.session_state.mis_data) if st.session_state.mis_data else None
+        module = st.session_state.selected_module
 
-            elif st.session_state.selected_module == "phone":
-                phone_numbers.render_phone_numbers_module(engine, st.session_state.mis_data)
-
-            elif st.session_state.selected_module == "campaign":
-                HDFC_campaign.render_campaign_analysis_module(st.session_state.mis_data, engine)
-
-            elif st.session_state.selected_module == "google":
-                google_summary.render_google_ads_module(engine, st.session_state.mis_data)
-
-            elif st.session_state.selected_module == "upload":
-                Input_MIS.render_mis_upload_module(engine)
-
-            elif st.session_state.selected_module == "sql":
-                sql_console.render_sql_console_module(engine)
-
-        else:
-            # Allow access to modules even without uploaded MIS (they can load from DB)
-            if st.session_state.selected_module == "campaign":
-                HDFC_campaign.render_campaign_analysis_module(None, engine)
-            elif st.session_state.selected_module == "phone":
-                phone_numbers.render_phone_numbers_module(engine, None)
-            elif st.session_state.selected_module == "google":
-                google_summary.render_google_ads_module(engine, None)
-            elif st.session_state.selected_module == "upload":
-                Input_MIS.render_mis_upload_module(engine)
-            elif st.session_state.selected_module == "sql":
-                sql_console.render_sql_console_module(engine)
-            elif st.session_state.selected_module is None:
-                # Dashboard view - show status analysis option to load from DB
-                status_analysis.render_status_analysis_module(None, engine)
-            else:
-                st.warning("⚠️ Please load MIS data from database or upload the MIS file to begin analysis")
-
+        if module is None:
+            status_analysis.render_status_analysis_module(filtered_data, engine)
+        elif module == "phone":
+            phone_numbers.render_phone_numbers_module(engine, filtered_data)
+        elif module == "campaign":
+            HDFC_campaign.render_campaign_analysis_module(filtered_data, engine)
+        elif module == "google":
+            google_summary.render_google_ads_module(engine, filtered_data)
+        elif module == "upload":
+            Input_MIS.render_mis_upload_module(engine)
+        elif module == "sql":
+            sql_console.render_sql_console_module(engine)
 
 # -------------------------
 # Run Application

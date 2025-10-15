@@ -10,7 +10,7 @@ def setup_database():
     """Create MIS_Update_Log table if it doesn't exist"""
 
     # Database connection
-    engine = create_engine("postgresql+psycopg2://postgres:1234@localhost:5432/Nxtify")
+    engine = create_engine("postgresql+psycopg2://postgres:112406@localhost:5432/Nxtify")
 
     # SQL to create MIS_Update_Log table
     create_table_sql = """

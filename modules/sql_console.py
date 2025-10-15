@@ -411,7 +411,7 @@ if __name__ == "__main__":
     # Test mode
     try:
         from sqlalchemy import create_engine
-        engine = create_engine("postgresql+psycopg2://postgres:1234@localhost:5432/Nxtify")
+        engine = create_engine("postgresql+psycopg2://postgres:112406@localhost:5432/Nxtify")
     except:
         engine = None
 

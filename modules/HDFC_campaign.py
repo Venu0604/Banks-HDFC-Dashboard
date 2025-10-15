@@ -252,28 +252,36 @@ def render_campaign_analysis_module(df_mis=None, db_engine=None):
     """Main render function for campaign analysis module"""
     st.markdown("## 📈 Campaign Performance Analysis")
 
-    # Check if MIS data exists in session state (from module-specific load)
+    # Priority: Use filtered data from main dashboard if provided, otherwise use module-specific load
+    data_source = "main dashboard (filtered)" if df_mis is not None else None
+
+    # If data passed from main dashboard, clear module-specific cache to avoid confusion
+    if df_mis is not None and 'campaign_mis_data' in st.session_state:
+        del st.session_state.campaign_mis_data
+
+    # Fall back to module-specific data if no data from main dashboard
     if df_mis is None and 'campaign_mis_data' in st.session_state:
         df_mis = st.session_state.campaign_mis_data
-        st.info(f"🗄️ Using {len(df_mis):,} MIS records loaded from database")
+        data_source = "module database"
 
-    # Option to load MIS from database if not provided
-    if db_engine is not None and df_mis is None:
+    # Display data info and load button
+    if df_mis is not None:
+        st.info(f"🗄️ Using {len(df_mis):,} MIS records from {data_source}")
+    elif db_engine is not None:
         col1, col2 = st.columns([2, 1])
         with col1:
             st.info("📊 Load MIS data from database or upload from main dashboard")
         with col2:
-            if st.button("🗄️ Load MIS from Database", key="load_campaign_mis_db", use_container_width=True):
-                with st.spinner("Loading MIS data from database..."):
+            if st.button("🗄️ Load MIS from DB", key="load_campaign_mis_db", use_container_width=True):
+                with st.spinner("Loading..."):
                     try:
-                        query = 'SELECT * FROM "HDFC_MIS_Data"'
-                        df_mis = pd.read_sql(query, db_engine)
+                        df_mis = pd.read_sql('SELECT * FROM "HDFC_MIS_Data"', db_engine)
                         df_mis.columns = df_mis.columns.str.strip()
                         st.session_state.campaign_mis_data = df_mis
-                        st.success(f"✅ Loaded {len(df_mis):,} records from HDFC_MIS_Data table")
+                        st.success(f"✅ Loaded {len(df_mis):,} records (unfiltered)")
                         st.rerun()
                     except Exception as e:
-                        st.error(f"❌ Error loading MIS data from database: {e}")
+                        st.error(f"❌ Error: {str(e)[:50]}")
                         return
 
     # Load identifiers from Google Sheets
@@ -410,55 +418,267 @@ def render_campaign_analysis_module(df_mis=None, db_engine=None):
             
             with tab1:
                 st.markdown("### 📊 Performance Visualizations")
-                
+
+                # Global Filters
+                st.markdown("#### 🎯 Global Filters (Apply to All Charts)")
+                global_filter_col1, global_filter_col2 = st.columns(2)
+
+                with global_filter_col1:
+                    global_channel_filter = st.multiselect(
+                        "Filter by Channel (Global):",
+                        options=df_summary["Channel"].unique().tolist(),
+                        default=df_summary["Channel"].unique().tolist(),
+                        help="Global filter - applies to all visualizations",
+                        key="global_channel_filter"
+                    )
+
+                with global_filter_col2:
+                    global_decision_filter = st.multiselect(
+                        "Filter by Final Decision (Global):",
+                        options=["Card Out", "Declined", "Inprogress", "IPA Approved"],
+                        default=["Card Out", "Declined", "Inprogress", "IPA Approved"],
+                        help="Global filter - applies to all visualizations",
+                        key="global_decision_filter"
+                    )
+
+                # Apply global filters to summary data
+                df_summary_global = df_summary[df_summary["Channel"].isin(global_channel_filter)].copy()
+
+                # Recalculate totals based on global filters
+                global_apps = df_summary_global["Applications"].sum()
+                global_cost = df_summary_global["Total cost (₹)"].sum()
+                global_ipa = df_summary_global["IPA approved"].sum()
+                global_card_out = df_summary_global["Card Out"].sum()
+                global_declined = df_summary_global["Declined"].sum()
+                global_inprogress = df_summary_global["Inprogress"].sum()
+
+                st.markdown("---")
+
+                # Chart 1: Custom Bar Chart
+                st.markdown("#### 📊 Chart 1: Custom Bar Chart")
+                with st.expander("⚙️ Customize Bar Chart", expanded=True):
+                    bar_col1, bar_col2, bar_col3 = st.columns(3)
+
+                    with bar_col1:
+                        numeric_cols = df_summary_global.select_dtypes(include=['number']).columns.tolist()
+                        bar_y_col = st.selectbox(
+                            "Y-Axis Metric:",
+                            options=numeric_cols,
+                            index=numeric_cols.index("Applications") if "Applications" in numeric_cols else 0,
+                            key="bar_y_col"
+                        )
+
+                    with bar_col2:
+                        bar_channel_filter = st.multiselect(
+                            "Channels for this chart:",
+                            options=df_summary_global["Channel"].unique().tolist(),
+                            default=df_summary_global["Channel"].unique().tolist(),
+                            key="bar_channel_filter"
+                        )
+
+                    with bar_col3:
+                        bar_sort = st.selectbox(
+                            "Sort by:",
+                            options=["Default", "Ascending", "Descending"],
+                            key="bar_sort"
+                        )
+
+                df_bar = df_summary_global[df_summary_global["Channel"].isin(bar_channel_filter)].copy()
+                if bar_sort == "Ascending":
+                    df_bar = df_bar.sort_values(by=bar_y_col, ascending=True)
+                elif bar_sort == "Descending":
+                    df_bar = df_bar.sort_values(by=bar_y_col, ascending=False)
+
                 viz_col1, viz_col2 = st.columns(2)
-                
+
                 with viz_col1:
-                    # Applications by Channel
-                    fig1 = px.bar(
-                        df_summary, x="Channel", y="Applications",
-                        title="Applications by Channel",
-                        color="Applications",
-                        color_continuous_scale="Blues",
-                        text="Applications"
-                    )
-                    fig1.update_traces(textposition='outside')
-                    fig1.update_layout(showlegend=False, height=400)
-                    st.plotly_chart(fig1, use_container_width=True)
-                    
-                    # Cost Efficiency
-                    fig3 = px.bar(
-                        df_summary, x="Channel", y="Cost per Application (₹)",
-                        title="Cost Efficiency per Channel",
-                        color="Cost per Application (₹)",
-                        color_continuous_scale="Reds",
-                        text="Cost per Application (₹)"
-                    )
-                    fig3.update_traces(texttemplate='₹%{text:.2f}', textposition='outside')
-                    fig3.update_layout(showlegend=False, height=400)
-                    st.plotly_chart(fig3, use_container_width=True)
-                
+                    # Custom Bar Chart
+                    if not df_bar.empty:
+                        fig1 = px.bar(
+                            df_bar, x="Channel", y=bar_y_col,
+                            title=f"{bar_y_col} by Channel",
+                            color=bar_y_col,
+                            color_continuous_scale="Blues",
+                            text=bar_y_col
+                        )
+                        fig1.update_traces(textposition='outside')
+                        fig1.update_layout(showlegend=False, height=400)
+                        st.plotly_chart(fig1, use_container_width=True)
+                    else:
+                        st.info("No data available for selected filters")
+
+                    # Chart 3: Cost Efficiency Bar Chart
+                    st.markdown("#### 📊 Chart 3: Cost Efficiency")
+                    with st.expander("⚙️ Customize Cost Efficiency Chart", expanded=False):
+                        cost_col1, cost_col2 = st.columns(2)
+
+                        with cost_col1:
+                            cost_metric = st.selectbox(
+                                "Cost Metric:",
+                                options=["Cost per Application (₹)", "Cost per IPA (₹)", "Cost per Card Out (₹)", "Total cost (₹)"],
+                                key="cost_metric"
+                            )
+
+                        with cost_col2:
+                            cost_channel_filter = st.multiselect(
+                                "Channels:",
+                                options=df_summary_global["Channel"].unique().tolist(),
+                                default=df_summary_global["Channel"].unique().tolist(),
+                                key="cost_channel_filter"
+                            )
+
+                    df_cost = df_summary_global[df_summary_global["Channel"].isin(cost_channel_filter)].copy()
+
+                    if not df_cost.empty and cost_metric in df_cost.columns:
+                        fig3 = px.bar(
+                            df_cost, x="Channel", y=cost_metric,
+                            title=f"{cost_metric} by Channel",
+                            color=cost_metric,
+                            color_continuous_scale="Reds",
+                            text=cost_metric
+                        )
+                        fig3.update_traces(texttemplate='₹%{text:.2f}', textposition='outside')
+                        fig3.update_layout(showlegend=False, height=400)
+                        st.plotly_chart(fig3, use_container_width=True)
+
                 with viz_col2:
-                    # Cost Distribution
-                    fig2 = px.pie(
-                        df_summary, values="Total cost (₹)", names="Channel",
-                        title="Cost Distribution by Channel",
-                        hole=0.4
-                    )
-                    fig2.update_traces(textposition='inside', textinfo='percent+label')
-                    fig2.update_layout(height=400)
-                    st.plotly_chart(fig2, use_container_width=True)
-                    
-                    # Conversion Funnel
-                    fig4 = go.Figure(go.Funnel(
-                        y=["Applications", "IPA Approved", "Card Out"],
-                        x=[total_apps, total_ipa, total_card_out],
-                        textposition="inside",
-                        textinfo="value+percent initial",
-                        marker={"color": ["#667eea", "#764ba2", "#f093fb"]}
-                    ))
-                    fig4.update_layout(title="Conversion Funnel", height=400)
-                    st.plotly_chart(fig4, use_container_width=True)
+                    # Chart 2: Custom Pie Chart
+                    st.markdown("#### 📊 Chart 2: Distribution Pie Chart")
+                    with st.expander("⚙️ Customize Pie Chart", expanded=True):
+                        pie_col1, pie_col2 = st.columns(2)
+
+                        with pie_col1:
+                            pie_value_col = st.selectbox(
+                                "Value Metric:",
+                                options=numeric_cols,
+                                index=numeric_cols.index("Total cost (₹)") if "Total cost (₹)" in numeric_cols else 0,
+                                key="pie_value_col"
+                            )
+
+                        with pie_col2:
+                            pie_channel_filter = st.multiselect(
+                                "Channels:",
+                                options=df_summary_global["Channel"].unique().tolist(),
+                                default=df_summary_global["Channel"].unique().tolist(),
+                                key="pie_channel_filter"
+                            )
+
+                    df_pie = df_summary_global[df_summary_global["Channel"].isin(pie_channel_filter)].copy()
+
+                    if not df_pie.empty:
+                        fig2 = px.pie(
+                            df_pie, values=pie_value_col, names="Channel",
+                            title=f"{pie_value_col} Distribution by Channel",
+                            hole=0.4
+                        )
+                        fig2.update_traces(textposition='inside', textinfo='percent+label+value')
+                        fig2.update_layout(height=400)
+                        st.plotly_chart(fig2, use_container_width=True)
+                    else:
+                        st.info("No data available for selected filters")
+
+                    # Chart 4: Conversion Funnel
+                    st.markdown("#### 📊 Chart 4: Conversion Funnel")
+                    with st.expander("⚙️ Customize Funnel", expanded=False):
+                        funnel_stages = st.multiselect(
+                            "Funnel Stages:",
+                            options=["Total Applications", "IPA Approved", "Card Out"],
+                            default=["Total Applications", "IPA Approved", "Card Out"],
+                            key="funnel_stages"
+                        )
+
+                    funnel_data = []
+                    funnel_labels = []
+
+                    if "Total Applications" in funnel_stages:
+                        funnel_labels.append("Total Applications")
+                        funnel_data.append(global_apps)
+                    if "IPA Approved" in funnel_stages:
+                        funnel_labels.append("IPA Approved")
+                        funnel_data.append(global_ipa)
+                    if "Card Out" in funnel_stages:
+                        funnel_labels.append("Card Out")
+                        funnel_data.append(global_card_out)
+
+                    if funnel_data:
+                        fig4 = go.Figure(go.Funnel(
+                            y=funnel_labels,
+                            x=funnel_data,
+                            textposition="inside",
+                            textinfo="value+percent initial",
+                            marker={"color": ["#667eea", "#764ba2", "#f093fb"][:len(funnel_data)]}
+                        ))
+                        fig4.update_layout(title="Conversion Funnel", height=400)
+                        st.plotly_chart(fig4, use_container_width=True)
+
+                # Chart 5: Final Decision Breakdown
+                st.markdown("#### 📊 Chart 5: Final Decision Breakdown")
+                with st.expander("⚙️ Customize Decision Breakdown", expanded=False):
+                    decision_col1, decision_col2 = st.columns(2)
+
+                    with decision_col1:
+                        decision_status_filter = st.multiselect(
+                            "Statuses to Display:",
+                            options=['Card Out', 'Declined', 'Inprogress'],
+                            default=['Card Out', 'Declined', 'Inprogress'],
+                            key="decision_status_filter"
+                        )
+
+                    with decision_col2:
+                        decision_chart_type = st.selectbox(
+                            "Chart Type:",
+                            options=["Bar Chart", "Pie Chart"],
+                            key="decision_chart_type"
+                        )
+
+                decision_data = {
+                    'Status': [],
+                    'Count': []
+                }
+
+                if "Card Out" in decision_status_filter:
+                    decision_data['Status'].append('Card Out')
+                    decision_data['Count'].append(global_card_out)
+                if "Declined" in decision_status_filter:
+                    decision_data['Status'].append('Declined')
+                    decision_data['Count'].append(global_declined)
+                if "Inprogress" in decision_status_filter:
+                    decision_data['Status'].append('Inprogress')
+                    decision_data['Count'].append(global_inprogress)
+
+                if decision_data['Count']:
+                    df_decision = pd.DataFrame(decision_data)
+
+                    if decision_chart_type == "Bar Chart":
+                        fig5 = px.bar(
+                            df_decision, x='Status', y='Count',
+                            title='Final Decision Status Distribution',
+                            color='Status',
+                            color_discrete_map={
+                                'Card Out': '#10B981',
+                                'Declined': '#EF4444',
+                                'Inprogress': '#3B82F6'
+                            },
+                            text='Count'
+                        )
+                        fig5.update_traces(textposition='outside')
+                        fig5.update_layout(showlegend=False, height=400)
+                    else:
+                        fig5 = px.pie(
+                            df_decision, values='Count', names='Status',
+                            title='Final Decision Status Distribution',
+                            color='Status',
+                            color_discrete_map={
+                                'Card Out': '#10B981',
+                                'Declined': '#EF4444',
+                                'Inprogress': '#3B82F6'
+                            },
+                            hole=0.4
+                        )
+                        fig5.update_traces(textposition='inside', textinfo='percent+label+value')
+                        fig5.update_layout(height=400)
+
+                    st.plotly_chart(fig5, use_container_width=True)
             
             with tab2:
                 st.markdown("### 📑 Campaign Summary")

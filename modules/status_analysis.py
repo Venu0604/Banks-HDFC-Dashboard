@@ -308,11 +308,91 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
                 tab1, tab2, tab3 = st.tabs(["📊 Visualizations", "📋 Detailed Data", "📥 Download"])
 
                 with tab1:
+                    st.markdown("### 📊 Visualizations")
+
+                    # Get categorical columns
+                    categorical_cols = df_filtered.select_dtypes(include=['object']).columns.tolist()
+
+                    st.markdown("---")
+
+                    # Chart 1: Pie Chart
+                    st.markdown("#### 📊 Chart 1: Status Distribution Pie Chart")
+                    with st.expander("⚙️ Customize Pie Chart", expanded=True):
+                        pie_col1, pie_col2 = st.columns(2)
+
+                        with pie_col1:
+                            pie_status_filter = st.multiselect(
+                                "Select statuses:",
+                                options=['Card Out', 'Declined', 'Inprogress', 'Other'],
+                                default=['Card Out', 'Declined', 'Inprogress', 'Other'],
+                                help="Choose which statuses to show",
+                                key="pie_status_filter"
+                            )
+
+                        with pie_col2:
+                            pie_chart_type = st.selectbox(
+                                "Chart Style:",
+                                options=["Donut (Hole)", "Full Pie"],
+                                key="pie_chart_type"
+                            )
+
+                    status_df_pie = pd.DataFrame({
+                        'Status': ['Card Out', 'Declined', 'Inprogress', 'Other'],
+                        'Count': [
+                            status_counts['Card Out'],
+                            status_counts['Declined'],
+                            status_counts['Inprogress'],
+                            status_counts['Other']
+                        ]
+                    })
+                    status_df_pie = status_df_pie[status_df_pie['Status'].isin(pie_status_filter)]
+                    status_df_pie = status_df_pie[status_df_pie['Count'] > 0]
+
                     viz_col1, viz_col2 = st.columns(2)
 
                     with viz_col1:
-                        # Status distribution pie chart
-                        status_df = pd.DataFrame({
+                        if not status_df_pie.empty:
+                            fig1 = px.pie(
+                                status_df_pie,
+                                values='Count',
+                                names='Status',
+                                title='Final Decision Distribution',
+                                hole=0.4 if pie_chart_type == "Donut (Hole)" else 0,
+                                color='Status',
+                                color_discrete_map={
+                                    'Card Out': '#10B981',
+                                    'Declined': '#EF4444',
+                                    'Inprogress': '#3B82F6',
+                                    'Other': '#6B7280'
+                                }
+                            )
+                            fig1.update_traces(textposition='inside', textinfo='percent+label+value')
+                            st.plotly_chart(fig1, use_container_width=True)
+                        else:
+                            st.info("No data to display - select at least one status")
+
+                    with viz_col2:
+                        # Chart 2: Bar Chart
+                        st.markdown("#### 📊 Chart 2: Status Count Bar Chart")
+                        with st.expander("⚙️ Customize Bar Chart", expanded=False):
+                            bar_col1, bar_col2 = st.columns(2)
+
+                            with bar_col1:
+                                bar_status_filter = st.multiselect(
+                                    "Select statuses:",
+                                    options=['Card Out', 'Declined', 'Inprogress', 'Other'],
+                                    default=['Card Out', 'Declined', 'Inprogress', 'Other'],
+                                    key="bar_status_filter"
+                                )
+
+                            with bar_col2:
+                                bar_orientation = st.selectbox(
+                                    "Orientation:",
+                                    options=["Vertical", "Horizontal"],
+                                    key="bar_orientation"
+                                )
+
+                        status_df_bar = pd.DataFrame({
                             'Status': ['Card Out', 'Declined', 'Inprogress', 'Other'],
                             'Count': [
                                 status_counts['Card Out'],
@@ -321,64 +401,156 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
                                 status_counts['Other']
                             ]
                         })
-                        status_df = status_df[status_df['Count'] > 0]
+                        status_df_bar = status_df_bar[status_df_bar['Status'].isin(bar_status_filter)]
+                        status_df_bar = status_df_bar[status_df_bar['Count'] > 0]
 
-                        fig1 = px.pie(
-                            status_df,
-                            values='Count',
-                            names='Status',
-                            title='Final Decision Distribution',
-                            hole=0.4,
-                            color='Status',
-                            color_discrete_map={
-                                'Card Out': '#10B981',      # Green
-                                'Declined': '#EF4444',      # Red
-                                'Inprogress': '#3B82F6',    # Blue
-                                'Other': '#6B7280'          # Gray
+                        if not status_df_bar.empty:
+                            if bar_orientation == "Vertical":
+                                fig2 = px.bar(
+                                    status_df_bar,
+                                    x='Status',
+                                    y='Count',
+                                    title='Status Counts',
+                                    color='Status',
+                                    color_discrete_map={
+                                        'Card Out': '#10B981',
+                                        'Declined': '#EF4444',
+                                        'Inprogress': '#3B82F6',
+                                        'Other': '#6B7280'
+                                    },
+                                    text='Count'
+                                )
+                                fig2.update_traces(textposition='outside')
+                            else:
+                                fig2 = px.bar(
+                                    status_df_bar,
+                                    y='Status',
+                                    x='Count',
+                                    title='Status Counts',
+                                    orientation='h',
+                                    color='Status',
+                                    color_discrete_map={
+                                        'Card Out': '#10B981',
+                                        'Declined': '#EF4444',
+                                        'Inprogress': '#3B82F6',
+                                        'Other': '#6B7280'
+                                    },
+                                    text='Count'
+                                )
+                                fig2.update_traces(textposition='outside')
+
+                            fig2.update_layout(showlegend=False)
+                            st.plotly_chart(fig2, use_container_width=True)
+
+                    # Chart 3: Conversion Funnel
+                    st.markdown("#### 📊 Chart 3: Conversion Funnel")
+                    with st.expander("⚙️ Customize Funnel", expanded=False):
+                        funnel_col1, funnel_col2 = st.columns(2)
+
+                        with funnel_col1:
+                            funnel_stages = st.multiselect(
+                                "Funnel stages:",
+                                options=["Total Applications", "IPA Approved", "Card Out"],
+                                default=["Total Applications", "IPA Approved", "Card Out"],
+                                help="Choose stages for the conversion funnel",
+                                key="funnel_stages"
+                            )
+
+                        with funnel_col2:
+                            funnel_show_percentages = st.checkbox(
+                                "Show percentages",
+                                value=True,
+                                key="funnel_show_percentages"
+                            )
+
+                    funnel_y = []
+                    funnel_x = []
+
+                    if "Total Applications" in funnel_stages:
+                        funnel_y.append("Total Applications")
+                        funnel_x.append(status_counts['Total Applications'])
+                    if "IPA Approved" in funnel_stages:
+                        funnel_y.append("IPA Approved")
+                        funnel_x.append(status_counts['IPA Approved'])
+                    if "Card Out" in funnel_stages:
+                        funnel_y.append("Card Out")
+                        funnel_x.append(status_counts['Card Out'])
+
+                    if funnel_y:
+                        fig3 = go.Figure(go.Funnel(
+                            y=funnel_y,
+                            x=funnel_x,
+                            textposition="inside",
+                            textinfo="value+percent initial" if funnel_show_percentages else "value",
+                            marker={
+                                "color": ["#3B82F6", "#764ba2", "#10B981"][:len(funnel_y)],
+                                "line": {"width": 1, "color": "white"}
                             }
-                        )
-                        fig1.update_traces(textposition='inside', textinfo='percent+label+value')
-                        st.plotly_chart(fig1, use_container_width=True)
+                        ))
+                        fig3.update_layout(title="Conversion Funnel", height=400)
+                        st.plotly_chart(fig3, use_container_width=True)
 
-                    with viz_col2:
-                        # Status bar chart
-                        fig2 = px.bar(
-                            status_df,
-                            x='Status',
-                            y='Count',
-                            title='Status Counts',
-                            color='Status',
-                            color_discrete_map={
-                                'Card Out': '#10B981',      # Green
-                                'Declined': '#EF4444',      # Red
-                                'Inprogress': '#3B82F6',    # Blue
-                                'Other': '#6B7280'          # Gray
-                            },
-                            text='Count'
-                        )
-                        fig2.update_traces(textposition='outside')
-                        fig2.update_layout(showlegend=False)
-                        st.plotly_chart(fig2, use_container_width=True)
+                    # Chart 4: Custom Breakdown
+                    st.markdown("#### 📊 Chart 4: Custom Category Breakdown")
+                    with st.expander("⚙️ Customize Breakdown Chart", expanded=False):
+                        custom_col1, custom_col2, custom_col3 = st.columns(3)
 
-                    # Conversion funnel
-                    fig3 = go.Figure(go.Funnel(
-                        y=["Total Applications", "IPA Approved", "Card Out"],
-                        x=[
-                            status_counts['Total Applications'],
-                            status_counts['IPA Approved'],
-                            status_counts['Card Out']
-                        ],
-                        textposition="inside",
-                        textinfo="value+percent initial",
-                        marker={
-                            "color": ["#3B82F6", "#3B82F6", "#10B981"],  # Blue -> Blue -> Green
-                            "line": {"width": 1, "color": "white"}
-                        }
-                    ))
-                    fig3.update_layout(height=400)
-                    st.plotly_chart(fig3, use_container_width=True)
+                        with custom_col1:
+                            if categorical_cols:
+                                custom_category_col = st.selectbox(
+                                    "Select column:",
+                                    options=['None'] + categorical_cols,
+                                    help="Select a column to create breakdown chart",
+                                    key="custom_category_col"
+                                )
+                            else:
+                                custom_category_col = 'None'
+
+                        with custom_col2:
+                            custom_top_n = st.number_input(
+                                "Show Top N:",
+                                min_value=5,
+                                max_value=50,
+                                value=10,
+                                key="custom_top_n"
+                            )
+
+                        with custom_col3:
+                            custom_chart_type = st.selectbox(
+                                "Chart Type:",
+                                options=["Bar Chart", "Pie Chart"],
+                                key="custom_chart_type"
+                            )
+
+                    if custom_category_col != 'None' and custom_category_col in df_filtered.columns:
+                        category_counts = df_filtered[custom_category_col].value_counts().head(custom_top_n)
+
+                        if custom_chart_type == "Bar Chart":
+                            fig_custom = px.bar(
+                                x=category_counts.index,
+                                y=category_counts.values,
+                                title=f"Top {custom_top_n} - Distribution by {custom_category_col}",
+                                labels={'x': custom_category_col, 'y': 'Count'},
+                                color=category_counts.values,
+                                color_continuous_scale="Viridis",
+                                text=category_counts.values
+                            )
+                            fig_custom.update_traces(textposition='outside')
+                            fig_custom.update_layout(showlegend=False, height=400)
+                        else:
+                            fig_custom = px.pie(
+                                values=category_counts.values,
+                                names=category_counts.index,
+                                title=f"Top {custom_top_n} - Distribution by {custom_category_col}",
+                                hole=0.4
+                            )
+                            fig_custom.update_traces(textposition='inside', textinfo='percent+label+value')
+                            fig_custom.update_layout(height=400)
+
+                        st.plotly_chart(fig_custom, use_container_width=True)
 
                     # Conversion rates
+                    st.markdown("#### 📈 Conversion Rates")
                     conv_col1, conv_col2, conv_col3 = st.columns(3)
 
                     with conv_col1:

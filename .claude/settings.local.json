@@ -8,7 +8,10 @@
       "Bash(streamlit run:*)",
       "mcp__ide__getDiagnostics",
       "Bash(pip3 list:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Read(//Users/venugopal/Desktop/Work/Projects/HDFC/**)",
+      "Bash(tree:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

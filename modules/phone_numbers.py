@@ -81,27 +81,42 @@ def process_phone_numbers(sep, hdfc):
         .str.replace(r'\D+', '', regex=True)
     )
     sep_clean = sep_clean.drop_duplicates(subset=["seqId"], keep="first")
-    
+
     # Process MIS LC2 codes
     hdfc_lc2_col = find_col(hdfc, ["LC2_CODE"], 10)
     hdfc_app_col = find_col(hdfc, ["APPLICATION_REFERENCE_NUMBER"], 0)
-    
+
     hdfc["LC2_raw"] = hdfc[hdfc_lc2_col].fillna("").astype(str).str.strip()
     hdfc["DerivedPhone"] = hdfc["LC2_raw"].apply(derive_phone_from_lc2)
-    
+
     lc2_no_cg = hdfc["LC2_raw"].str.upper().str.replace(r'(?i)^CG', '', regex=True).str.strip()
     hdfc["seqId"] = lc2_no_cg.where(hdfc["DerivedPhone"].isna(), None)
     hdfc = hdfc.rename(columns={hdfc_app_col: "APPLICATION_REFERENCE_NUMBER"})
-    
+
     # Merge
     merged = pd.merge(hdfc, sep_clean, on="seqId", how="left")
     merged["FinalPhone"] = merged["DerivedPhone"].fillna(merged["phoneNo"])
     merged = merged.drop(columns=["phoneNo", "DerivedPhone", "LC2_raw"])
-    
-    # Reorder columns
-    other_cols = [c for c in merged.columns if c not in ["seqId", "FinalPhone"]]
-    merged = merged[other_cols + ["seqId", "FinalPhone"]]
-    
+
+    # Reorder columns - prioritize important columns
+    priority_cols = ["APPLICATION_REFERENCE_NUMBER"]
+
+    # Add final decision columns if they exist
+    if "FINAL_DECISION" in merged.columns:
+        priority_cols.append("FINAL_DECISION")
+    if "FINAL_DECISION_DATE" in merged.columns:
+        priority_cols.append("FINAL_DECISION_DATE")
+
+    # Add phone-related columns
+    priority_cols.extend(["seqId", "FinalPhone"])
+
+    # Get remaining columns
+    other_cols = [c for c in merged.columns if c not in priority_cols]
+
+    # Reorder: priority columns first, then others
+    final_order = [c for c in priority_cols if c in merged.columns] + other_cols
+    merged = merged[final_order]
+
     return merged
 
 
@@ -110,16 +125,23 @@ def render_phone_numbers_module(engine, df_mis=None):
     st.markdown("## 📞 Phone Numbers Extraction Module")
     st.info("📋 Extract and map phone numbers from campaign data using LC2 codes")
 
-    # Check if MIS data exists in session state (from module-specific load)
+    # Priority: Use filtered data from main dashboard if provided, otherwise use module-specific load
+    data_source = "main dashboard (filtered)" if df_mis is not None else None
+
+    # If data passed from main dashboard, clear module-specific cache to avoid confusion
+    if df_mis is not None and 'phone_mis_data' in st.session_state:
+        del st.session_state.phone_mis_data
+
+    # Fall back to module-specific data if no data from main dashboard
     if df_mis is None and 'phone_mis_data' in st.session_state:
         df_mis = st.session_state.phone_mis_data
+        data_source = "module database"
 
     col1, col2, col3 = st.columns([2, 1, 1])
 
     with col1:
         if df_mis is not None:
-            source = "🗄️ database" if 'phone_mis_data' in st.session_state else "main dashboard"
-            st.success(f"✅ Using {len(df_mis):,} MIS records from {source}")
+            st.success(f"✅ Using {len(df_mis):,} MIS records from {data_source}")
         else:
             st.info("ℹ️ Load MIS data from database or upload from main dashboard")
 
@@ -133,7 +155,7 @@ def render_phone_numbers_module(engine, df_mis=None):
                         df_mis_loaded = pd.read_sql(query, engine)
                         df_mis_loaded.columns = df_mis_loaded.columns.str.strip()
                         st.session_state.phone_mis_data = df_mis_loaded
-                        st.success(f"✅ Loaded {len(df_mis_loaded):,} MIS records")
+                        st.success(f"✅ Loaded {len(df_mis_loaded):,} MIS records (unfiltered)")
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ Error: {e}")
@@ -283,7 +305,7 @@ if __name__ == "__main__":
     
     # Test mode - create dummy engine
     try:
-        engine = create_engine("postgresql+psycopg://postgres:1234@localhost:5432/Nxtify")
+        engine = create_engine("postgresql+psycopg://postgres:112406@localhost:5432/Nxtify")
     except:
         engine = None
     
