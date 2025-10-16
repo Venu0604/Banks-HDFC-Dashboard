@@ -521,7 +521,7 @@ def main():
             st.caption("⚠️ No data loaded")
 
     with main_col:
-        filtered_data = apply_date_filter(st.session_state.mis_data) if st.session_state.mis_data else None
+        filtered_data = apply_date_filter(st.session_state.mis_data) if st.session_state.mis_data is not None else None
         module = st.session_state.selected_module
 
         if module is None:
