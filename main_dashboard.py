@@ -38,20 +38,11 @@ st.set_page_config(
 # Custom Styling (Dark Bank Theme)
 # -------------------------
 st.markdown("""<style>
-/* Main Theme Colors */
-:root {
-    --primary-color: #004C8C;
-    --secondary-color: #ED1C24;
-    --background-dark: #0E1117;
-    --text-light: #FAFAFA;
-}
+/* =====================================================
+   BALANCED SPACING - Optimized for Data Visibility
+   ===================================================== */
 
-/* Overall Background */
-.stApp {
-    background: linear-gradient(135deg, #0E1117 0%, #1a1f2e 100%);
-}
-
-/* Balanced Container Spacing */
+/* ---- Container Spacing (Balanced) ---- */
 .block-container {
     padding-top: 1.5rem !important;
     padding-bottom: 1rem !important;
@@ -60,205 +51,260 @@ st.markdown("""<style>
     max-width: 100% !important;
 }
 
-/* Balanced Section Spacing */
+/* ---- Section Spacing (Balanced) ---- */
 div[data-testid="stVerticalBlock"] > div {
     gap: 0.75rem !important;
 }
 
-/* Header Styling */
+/* ---- Headers (Balanced) ---- */
 h1, h2, h3, h4 {
-    color: var(--text-light) !important;
-    font-weight: 600 !important;
     margin-top: 0.75rem !important;
     margin-bottom: 0.75rem !important;
 }
 
 h1 {
     font-size: 2rem !important;
+    font-weight: 700 !important;
 }
 
 h2 {
     font-size: 1.6rem !important;
+    font-weight: 600 !important;
+    color: #e0e0e0 !important;
 }
 
 h3 {
     font-size: 1.3rem !important;
+    font-weight: 600 !important;
+    color: #d0d0d0 !important;
 }
 
 h4 {
     font-size: 1.1rem !important;
+    font-weight: 500 !important;
 }
 
-/* Horizontal Rule Spacing */
+/* ---- Horizontal Rules ---- */
 hr {
     margin-top: 0.75rem !important;
     margin-bottom: 0.75rem !important;
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, #667eea, transparent) !important;
 }
 
-/* Metric Cards */
+/* ---- Metric Cards (Balanced) ---- */
+[data-testid="stMetric"] {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    padding: 0.75rem !important;
+    border-radius: 10px !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
 [data-testid="stMetricValue"] {
     font-size: 1.8rem !important;
-    font-weight: 700 !important;
+    font-weight: bold !important;
     color: #fff !important;
 }
 
-[data-testid="stMetric"] {
-    padding: 0.75rem !important;
-}
-
 [data-testid="stMetricLabel"] {
-    font-size: 1rem !important;
+    color: #f0f0f0 !important;
+    font-size: 0.95rem !important;
 }
 
-/* Navigation Buttons */
+/* ---- Buttons (Balanced) ---- */
 .stButton>button {
-    background: linear-gradient(90deg, var(--primary-color), #0066CC);
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
     color: white !important;
-    border: none;
-    border-radius: 8px;
-    padding: 0.5rem 1rem;
-    font-weight: 600;
-    transition: all 0.3s ease;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 1rem !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    margin: 0 !important;
 }
 
 .stButton>button:hover {
-    background: linear-gradient(90deg, #0066CC, var(--primary-color));
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(237, 28, 36, 0.3);
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4) !important;
 }
 
-/* Selectbox */
-.stSelectbox {
-    color: white !important;
-}
-
-.stSelectbox label {
-    font-size: 0.95rem !important;
-    margin-bottom: 0.5rem !important;
-}
-
-/* Info Boxes */
-.stAlert {
-    border-radius: 10px;
-    border-left: 4px solid var(--secondary-color);
-    padding: 0.75rem 1rem !important;
-    margin: 0.75rem 0 !important;
-}
-
-/* Dataframes */
-.dataframe {
-    border-radius: 8px;
-    font-size: 0.95rem !important;
-}
-
-[data-testid="stDataFrame"] {
-    margin: 1rem 0 !important;
-}
-
-/* File Uploader */
-[data-testid="stFileUploader"] {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    padding: 1rem;
-    margin: 0.75rem 0 !important;
-}
-
-/* Tabs */
+/* ---- Tabs (Balanced) ---- */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 6px;
-    padding-top: 0.75rem;
-    margin-bottom: 1rem;
+    gap: 0.5rem !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    padding: 0.5rem !important;
+    border-radius: 10px !important;
+    margin-bottom: 1rem !important;
 }
 
 .stTabs [data-baseweb="tab"] {
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px 8px 0 0;
-    color: white;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.95rem;
+    background: transparent !important;
+    border: none !important;
+    color: #b0b0b0 !important;
+    padding: 0.6rem 1.2rem !important;
+    border-radius: 8px !important;
+    font-weight: 500 !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background: rgba(102, 126, 234, 0.2) !important;
+    color: #e0e0e0 !important;
 }
 
 .stTabs [aria-selected="true"] {
-    background: linear-gradient(90deg, var(--primary-color), #0066CC);
-    font-weight: 600;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
 }
 
-/* Expanders */
+/* ---- Expanders (Balanced) ---- */
 .streamlit-expanderHeader {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 8px !important;
     padding: 0.75rem 1rem !important;
+    font-weight: 500 !important;
     font-size: 1rem !important;
-    font-weight: 600;
-    background: rgba(255, 255, 255, 0.03) !important;
-    border-radius: 8px;
+    transition: all 0.3s ease !important;
+}
+
+.streamlit-expanderHeader:hover {
+    background: rgba(102, 126, 234, 0.2) !important;
 }
 
 .streamlit-expanderContent {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-radius: 0 0 8px 8px !important;
     padding: 1rem !important;
-    margin-top: 0.5rem;
+    border: 1px solid rgba(102, 126, 234, 0.2) !important;
 }
 
-/* Column Spacing */
-div[data-testid="column"] {
-    padding: 0 0.75rem !important;
+/* ---- DataFrames (Balanced) ---- */
+[data-testid="stDataFrame"] {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-radius: 8px !important;
+    padding: 0.5rem !important;
+    margin: 1rem 0 !important;
 }
 
-/* Form Elements */
-.stCheckbox, .stRadio {
-    padding: 0.25rem 0 !important;
-}
-
-.stCheckbox label, .stRadio label {
+.dataframe {
     font-size: 0.95rem !important;
+    color: #e0e0e0 !important;
 }
 
-/* Markdown Spacing */
-.stMarkdown {
-    margin-bottom: 0.5rem !important;
+.dataframe th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+    color: white !important;
+    font-weight: 600 !important;
+    padding: 0.75rem !important;
 }
 
-.stMarkdown p {
-    margin-bottom: 0.5rem !important;
+.dataframe td {
+    padding: 0.6rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
 
-/* Input Fields */
-.stDateInput, .stNumberInput, .stTextInput {
-    margin-bottom: 0.5rem !important;
-}
-
-.stDateInput label, .stNumberInput label, .stTextInput label {
-    margin-bottom: 0.5rem !important;
-}
-
-/* Plotly Charts */
+/* ---- Charts (Balanced) ---- */
 .js-plotly-plot {
     margin: 1rem 0 !important;
 }
 
-/* Multiselect */
-.stMultiSelect label {
-    font-size: 0.95rem !important;
+.plotly {
+    border-radius: 8px !important;
+}
+
+/* ---- Select Boxes & Inputs (Balanced) ---- */
+.stSelectbox, .stMultiselect, .stTextInput, .stNumberInput, .stDateInput {
+    margin-bottom: 0.75rem !important;
+}
+
+.stSelectbox > div > div,
+.stMultiselect > div > div,
+.stTextInput > div > div,
+.stNumberInput > div > div,
+.stDateInput > div > div {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(102, 126, 234, 0.3) !important;
+    border-radius: 8px !important;
+    color: #e0e0e0 !important;
+}
+
+/* ---- Checkboxes & Radio (Balanced) ---- */
+.stCheckbox, .stRadio {
     margin-bottom: 0.5rem !important;
 }
 
-/* Caption Text */
+/* ---- Column Gaps (Balanced) ---- */
+div[data-testid="column"] {
+    padding: 0 0.5rem !important;
+}
+
+/* ---- Sidebar Styling ---- */
+section[data-testid="stSidebar"] {
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%) !important;
+    border-right: 2px solid rgba(102, 126, 234, 0.3) !important;
+}
+
+/* ---- Navigation ---- */
+.stRadio > label {
+    font-weight: 500 !important;
+    color: #e0e0e0 !important;
+}
+
+/* ---- Info, Warning, Success, Error Boxes ---- */
+.stAlert {
+    border-radius: 8px !important;
+    border-left: 4px solid !important;
+    padding: 0.75rem 1rem !important;
+    margin: 0.75rem 0 !important;
+}
+
+/* ---- Upload Widget ---- */
+[data-testid="stFileUploader"] {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 2px dashed rgba(102, 126, 234, 0.4) !important;
+    border-radius: 8px !important;
+    padding: 1rem !important;
+    margin: 0.75rem 0 !important;
+}
+
+/* ---- Main Background ---- */
+.stApp {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+}
+
+/* ---- Download Button Special ---- */
+.stDownloadButton>button {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    color: white !important;
+    border-radius: 8px !important;
+    padding: 0.5rem 1rem !important;
+    font-weight: 500 !important;
+}
+
+/* ---- Text Elements ---- */
+p, li, span, label {
+    color: #d0d0d0 !important;
+}
+
+/* ---- Markdown Elements ---- */
+.stMarkdown {
+    color: #e0e0e0 !important;
+}
+
+/* ---- Spinner ---- */
+.stSpinner > div {
+    border-color: #667eea !important;
+}
+
+/* ---- Progress Bar ---- */
+.stProgress > div > div {
+    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%) !important;
+}
+
+/* ---- Caption Text ---- */
 .caption {
-    font-size: 0.85rem !important;
-    line-height: 1.4 !important;
-}
-
-/* Improve Readability */
-body {
-    line-height: 1.6 !important;
-}
-
-/* Ensure all text is visible */
-* {
-    overflow: visible !important;
-}
-
-/* Fix any truncated content */
-.element-container {
-    overflow: visible !important;
+    color: #a0a0a0 !important;
+    font-size: 0.9rem !important;
 }
 </style>""", unsafe_allow_html=True)
 
@@ -267,6 +313,8 @@ body {
 # -------------------------
 def apply_date_filter(df):
     """Apply date filter based on session state"""
+    import pandas as pd
+
     if not st.session_state.get('date_filter_enabled', False) or df is None:
         return df
 
@@ -296,6 +344,8 @@ def apply_date_filter(df):
 # -------------------------
 def main():
     """Main dashboard orchestrator"""
+    import pandas as pd
+
     # Initialize session state
     for key, default in [
         ('mis_data', None), ('mis_filename', None), ('mis_source', None),
@@ -315,28 +365,29 @@ def main():
     col1, col2, col3 = st.columns([1.5, 3, 1.5])
 
     with col1:
-        logo_path = Path("assets/images/hdfc credit .png")
+        logo_path = Path("Public/hdfc credit .png")
         if logo_path.exists():
             st.image(str(logo_path), width=150)
 
         banner_path = None
         module = st.session_state.get('selected_module')
         if module is None:
-            banner_path = Path("assets/images/HDFC-Credit-Cards.png")
+            banner_path = Path("Public/HDFC-Credit-Cards.png")
         elif module == "campaign":
-            banner_path = Path("assets/images/HDFC campaign Analysis.png")
+            banner_path = Path("Public/HDFC campaign Analysis.png")
 
         if banner_path and banner_path.exists():
             st.image(str(banner_path), width=150)
 
     with col2:
         st.markdown(
-            f"<h1 style='text-align:center;color:#fff;'>{APP_TITLE}</h1>",
+            "<h1 style='text-align:center;color:#fff;'>HDFC Analytics Dashboard</h1>",
             unsafe_allow_html=True
         )
 
     with col3:
         st.markdown("🟢 **DB Connected**" if engine else "🔴 **DB Error**")
+        st.markdown("<br>", unsafe_allow_html=True)
 
         nav_options = {
             "Select Module...": None,
@@ -372,12 +423,12 @@ def main():
                 on_change=update_module
             )
 
-    st.markdown("<hr style='margin:0.75rem 0'>", unsafe_allow_html=True)
+    st.markdown("---")
 
     # -------------------------
     # Date Filter
     # -------------------------
-    st.markdown("### 📅 Date Filter")
+    st.markdown("## 📅 Date Filter")
     filter_cols = st.columns([1, 2, 1.5, 1.5, 2])
     fc1, fc2, fc3, fc4, fc5 = filter_cols
 
@@ -409,23 +460,24 @@ def main():
                             min_value=min_date, max_value=max_date
                         )
                     with fc5:
+                        st.markdown("<br>", unsafe_allow_html=True)
                         filtered_count = len(apply_date_filter(st.session_state.mis_data))
                         total_count = len(st.session_state.mis_data)
-                        st.info(f"📊 **{filtered_count:,}** / **{total_count:,}** records")
+                        st.info(f"📊 **{filtered_count:,}** of **{total_count:,}** records")
                 else:
                     with fc2:
-                        st.warning("⚠️ No valid dates")
+                        st.warning("⚠️ No valid dates in selected column")
             except Exception as e:
                 with fc2:
-                    st.error(f"❌ {str(e)[:30]}")
+                    st.error(f"❌ Error: {str(e)[:30]}")
         else:
             with fc2:
-                st.warning("⚠️ No date columns")
+                st.warning("⚠️ No date columns found")
     elif st.session_state.date_filter_enabled and st.session_state.mis_data is None:
         with fc2:
-            st.info("ℹ️ Load data first")
+            st.info("ℹ️ Load data first to enable date filter")
 
-    st.markdown("<hr style='margin:0.75rem 0'>", unsafe_allow_html=True)
+    st.markdown("---")
 
     # -------------------------
     # Sidebar & Main Area
@@ -459,12 +511,12 @@ def main():
                     except Exception as e:
                         st.error(f"Error: {str(e)[:50]}")
 
-        st.markdown("<hr style='margin:0.75rem 0'>", unsafe_allow_html=True)
+        st.markdown("---")
         if st.session_state.mis_data is not None:
             st.markdown("**📊 Current Data**")
             source_icon = "📁" if st.session_state.mis_source == "file" else "🗄️"
             st.caption(f"{source_icon} {st.session_state.mis_filename}")
-            st.caption(f"{len(st.session_state.mis_data):,} records")
+            st.caption(f"📊 {len(st.session_state.mis_data):,} records")
         else:
             st.caption("⚠️ No data loaded")
 
