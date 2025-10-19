@@ -61,16 +61,22 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
     # === Data Source Section ===
     st.markdown("### 📊 MIS Data Source")
 
+    # Track data source type
+    if 'status_mis_source' not in st.session_state:
+        st.session_state.status_mis_source = None
+
     # Check if MIS data exists from main dashboard
     if df_mis is not None and 'status_mis_data' in st.session_state:
         del st.session_state.status_mis_data
+        st.session_state.status_mis_source = None
 
     if df_mis is None and 'status_mis_data' in st.session_state:
         df_mis = st.session_state.status_mis_data
 
-    # Display current status
+    # Display current status with source info
     if df_mis is not None:
-        st.success(f"✅ Loaded: {len(df_mis):,} MIS records")
+        source_text = f" (from {st.session_state.status_mis_source})" if st.session_state.status_mis_source else ""
+        st.success(f"✅ Loaded: {len(df_mis):,} MIS records{source_text}")
     else:
         st.info("ℹ️ No MIS data loaded")
 
@@ -82,7 +88,7 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
             "Upload MIS Excel/CSV File",
             type=['xlsx', 'xls', 'csv'],
             key="status_mis_file_uploader",
-            help="Upload HDFC MIS data file"
+            help="Upload HDFC MIS data file (takes priority over database)"
         )
         if uploaded_mis:
             try:
@@ -93,25 +99,32 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
 
                 df_mis_uploaded.columns = df_mis_uploaded.columns.str.strip()
                 st.session_state.status_mis_data = df_mis_uploaded
-                st.success(f"✅ Uploaded {len(df_mis_uploaded):,} records")
+                st.session_state.status_mis_source = "uploaded file"
+                st.success(f"✅ Uploaded {len(df_mis_uploaded):,} records (file upload takes priority)")
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Error reading file: {str(e)}")
 
     with mis_source_tab2:
-        if st.button("🗄️ Load MIS from Database", key="status_load_mis_db", use_container_width=True):
-            if db_engine:
-                with st.spinner("Loading MIS data from database..."):
-                    try:
-                        df_mis_loaded = pd.read_sql('SELECT * FROM "HDFC_MIS_Data"', db_engine)
-                        df_mis_loaded.columns = df_mis_loaded.columns.str.strip()
-                        st.session_state.status_mis_data = df_mis_loaded
-                        st.success(f"✅ Loaded {len(df_mis_loaded):,} records from DB")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Database error: {str(e)[:100]}")
-            else:
-                st.error("❌ Database not available")
+        # Disable database load if file is uploaded
+        if st.session_state.status_mis_source == "uploaded file":
+            st.warning("⚠️ File uploaded - database loading disabled. Remove file to use database.")
+            st.button("🗄️ Load MIS from Database", key="status_load_mis_db", use_container_width=True, disabled=True)
+        else:
+            if st.button("🗄️ Load MIS from Database", key="status_load_mis_db", use_container_width=True):
+                if db_engine:
+                    with st.spinner("Loading MIS data from database..."):
+                        try:
+                            df_mis_loaded = pd.read_sql('SELECT * FROM "HDFC_MIS_Data"', db_engine)
+                            df_mis_loaded.columns = df_mis_loaded.columns.str.strip()
+                            st.session_state.status_mis_data = df_mis_loaded
+                            st.session_state.status_mis_source = "database"
+                            st.success(f"✅ Loaded {len(df_mis_loaded):,} records from DB")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Database error: {str(e)[:100]}")
+                else:
+                    st.error("❌ Database not available")
 
     st.markdown("---")
 

@@ -135,16 +135,22 @@ def render_phone_numbers_module(engine, df_mis=None):
     with data_col1:
         st.markdown("#### 📋 MIS Data")
 
+        # Track data source type
+        if 'phone_mis_source' not in st.session_state:
+            st.session_state.phone_mis_source = None
+
         # Check if MIS data exists from main dashboard
         if df_mis is not None and 'phone_mis_data' in st.session_state:
             del st.session_state.phone_mis_data
+            st.session_state.phone_mis_source = None
 
         if df_mis is None and 'phone_mis_data' in st.session_state:
             df_mis = st.session_state.phone_mis_data
 
-        # Display current status
+        # Display current status with source info
         if df_mis is not None:
-            st.success(f"✅ Loaded: {len(df_mis):,} records")
+            source_text = f" (from {st.session_state.phone_mis_source})" if st.session_state.phone_mis_source else ""
+            st.success(f"✅ Loaded: {len(df_mis):,} records{source_text}")
         else:
             st.info("ℹ️ No MIS data loaded")
 
@@ -156,7 +162,7 @@ def render_phone_numbers_module(engine, df_mis=None):
                 "Upload MIS Excel/CSV File",
                 type=['xlsx', 'xls', 'csv'],
                 key="phone_mis_file_uploader",
-                help="Upload HDFC MIS data file"
+                help="Upload HDFC MIS data file (takes priority over database)"
             )
             if uploaded_mis:
                 try:
@@ -167,33 +173,45 @@ def render_phone_numbers_module(engine, df_mis=None):
 
                     df_mis_uploaded.columns = df_mis_uploaded.columns.str.strip()
                     st.session_state.phone_mis_data = df_mis_uploaded
-                    st.success(f"✅ Uploaded {len(df_mis_uploaded):,} records")
+                    st.session_state.phone_mis_source = "uploaded file"
+                    st.success(f"✅ Uploaded {len(df_mis_uploaded):,} records (file upload takes priority)")
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Error reading file: {str(e)}")
 
         with mis_source_tab2:
-            if st.button("🗄️ Load MIS from Database", key="phone_load_mis_db", use_container_width=True):
-                if engine:
-                    with st.spinner("Loading MIS data from database..."):
-                        try:
-                            df_mis_loaded = pd.read_sql('SELECT * FROM "HDFC_MIS_Data"', engine)
-                            df_mis_loaded.columns = df_mis_loaded.columns.str.strip()
-                            st.session_state.phone_mis_data = df_mis_loaded
-                            st.success(f"✅ Loaded {len(df_mis_loaded):,} records from DB")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Database error: {str(e)[:100]}")
-                else:
-                    st.error("❌ Database not available")
+            # Disable database load if file is uploaded
+            if st.session_state.phone_mis_source == "uploaded file":
+                st.warning("⚠️ File uploaded - database loading disabled. Remove file to use database.")
+                st.button("🗄️ Load MIS from Database", key="phone_load_mis_db", use_container_width=True, disabled=True)
+            else:
+                if st.button("🗄️ Load MIS from Database", key="phone_load_mis_db", use_container_width=True):
+                    if engine:
+                        with st.spinner("Loading MIS data from database..."):
+                            try:
+                                df_mis_loaded = pd.read_sql('SELECT * FROM "HDFC_MIS_Data"', engine)
+                                df_mis_loaded.columns = df_mis_loaded.columns.str.strip()
+                                st.session_state.phone_mis_data = df_mis_loaded
+                                st.session_state.phone_mis_source = "database"
+                                st.success(f"✅ Loaded {len(df_mis_loaded):,} records from DB")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"❌ Database error: {str(e)[:100]}")
+                    else:
+                        st.error("❌ Database not available")
 
     # === Campaign Data Source ===
     with data_col2:
         st.markdown("#### 📞 Campaign Data")
 
-        # Display current status
+        # Track data source type
+        if 'phone_campaign_source' not in st.session_state:
+            st.session_state.phone_campaign_source = None
+
+        # Display current status with source info
         if 'phone_campaign_data' in st.session_state:
-            st.success(f"✅ Loaded: {len(st.session_state.phone_campaign_data):,} records")
+            source_text = f" (from {st.session_state.phone_campaign_source})" if st.session_state.phone_campaign_source else ""
+            st.success(f"✅ Loaded: {len(st.session_state.phone_campaign_data):,} records{source_text}")
         else:
             st.info("ℹ️ No campaign data loaded")
 
@@ -205,7 +223,7 @@ def render_phone_numbers_module(engine, df_mis=None):
                 "Upload Campaign Excel/CSV File",
                 type=['xlsx', 'xls', 'csv'],
                 key="phone_campaign_file_uploader",
-                help="Upload campaign data with seqId and phoneNo columns"
+                help="Upload campaign data with seqId and phoneNo columns (takes priority over database)"
             )
             if uploaded_campaign:
                 try:
@@ -216,24 +234,31 @@ def render_phone_numbers_module(engine, df_mis=None):
 
                     df_campaign_uploaded.columns = df_campaign_uploaded.columns.str.strip()
                     st.session_state.phone_campaign_data = df_campaign_uploaded
-                    st.success(f"✅ Uploaded {len(df_campaign_uploaded):,} campaigns")
+                    st.session_state.phone_campaign_source = "uploaded file"
+                    st.success(f"✅ Uploaded {len(df_campaign_uploaded):,} campaigns (file upload takes priority)")
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Error reading file: {str(e)}")
 
         with campaign_source_tab2:
-            if st.button("🗄️ Load Campaign from Database", key="phone_load_campaign_db", use_container_width=True):
-                if engine:
-                    with st.spinner("Loading campaign data from database..."):
-                        campaign_data, error = load_campaign_data_from_db(engine)
-                        if error:
-                            st.error(f"❌ Database error: {error}")
-                        else:
-                            st.session_state.phone_campaign_data = campaign_data
-                            st.success(f"✅ Loaded {len(campaign_data):,} campaign records from DB")
-                            st.rerun()
-                else:
-                    st.error("❌ Database not available")
+            # Disable database load if file is uploaded
+            if st.session_state.phone_campaign_source == "uploaded file":
+                st.warning("⚠️ File uploaded - database loading disabled. Remove file to use database.")
+                st.button("🗄️ Load Campaign from Database", key="phone_load_campaign_db", use_container_width=True, disabled=True)
+            else:
+                if st.button("🗄️ Load Campaign from Database", key="phone_load_campaign_db", use_container_width=True):
+                    if engine:
+                        with st.spinner("Loading campaign data from database..."):
+                            campaign_data, error = load_campaign_data_from_db(engine)
+                            if error:
+                                st.error(f"❌ Database error: {error}")
+                            else:
+                                st.session_state.phone_campaign_data = campaign_data
+                                st.session_state.phone_campaign_source = "database"
+                                st.success(f"✅ Loaded {len(campaign_data):,} campaign records from DB")
+                                st.rerun()
+                    else:
+                        st.error("❌ Database not available")
 
     st.markdown("---")
 
