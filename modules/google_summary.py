@@ -16,6 +16,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 
+# === Email Configuration ===
+SMTP_SERVER = "smtp.zoho.com"
+SMTP_PORT = 587
+EMAIL_ADDRESS = "Venugopal.p@paisawapas.com"
+EMAIL_PASSWORD = "ntnFcT1P2DVu"
+TO_EMAIL = "rishav@paisawapas.com"
+CC_EMAILS = ["maruthi.g@extrape.com", "pradeep.kumar@extrape.com", "raghvendra.singh@extrape.com"]
+
+
 def find_col(df, candidate_names, fallback_index=None):
     """Find column by matching candidate names"""
     lookup = {c.strip().lower(): c for c in df.columns}
@@ -129,12 +138,12 @@ def process_google_ads_summary(sep_google, hdfc):
     return final_df, sep_campaign_output, pivot_df
 
 
-def send_email_report(output_data, email_config):
-    """Send email with Excel report attached"""
+def send_email_report(output_data):
+    """Send email with Excel report attached using hardcoded configuration"""
     msg = MIMEMultipart()
-    msg['From'] = email_config['from']
-    msg['To'] = email_config['to']
-    msg['CC'] = email_config['cc']
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = TO_EMAIL
+    msg['CC'] = ', '.join(CC_EMAILS)
     msg['Subject'] = f"HDFC Google Ads MIS Report - {datetime.now().strftime('%d-%b-%Y')}"
 
     body = """Hello,
@@ -159,33 +168,42 @@ Venugopal"""
     part.add_header('Content-Disposition', f'attachment; filename={filename}')
     msg.attach(part)
 
-    server = smtplib.SMTP(email_config['smtp_server'], email_config['smtp_port'])
-    server.starttls()
-    server.login(email_config['from'], email_config['password'])
+    # Connect to SMTP server with better error handling
+    server = None
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30)
+        server.set_debuglevel(0)  # Set to 1 for debugging
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
 
-    recipients = [email_config['to']] + email_config['cc'].split(',')
-    server.sendmail(email_config['from'], recipients, msg.as_string())
-    server.quit()
+        # Login with credentials
+        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+
+        # Prepare recipient list
+        recipients = [TO_EMAIL] + CC_EMAILS
+
+        # Send email
+        server.sendmail(EMAIL_ADDRESS, recipients, msg.as_string())
+
+    except smtplib.SMTPAuthenticationError as e:
+        raise Exception(f"Authentication failed. Please check email credentials. Error: {str(e)}")
+    except smtplib.SMTPException as e:
+        raise Exception(f"SMTP error occurred: {str(e)}")
+    except Exception as e:
+        raise Exception(f"Failed to send email: {str(e)}")
+    finally:
+        if server:
+            try:
+                server.quit()
+            except:
+                pass
 
 
 def render_google_ads_module(engine, df_mis=None):
     """Main render function for Google Ads module"""
     st.markdown("## 🎯 Google Ads Campaign Summary")
     st.info("📊 Process Google Ads campaigns and generate detailed MIS reports")
-
-    # Email Configuration
-    with st.sidebar:
-        st.markdown("### 📧 Email Configuration")
-        with st.expander("Email Settings", expanded=False):
-            email_config = {
-                'smtp_server': st.text_input("SMTP Server", value="smtp.zoho.com"),
-                'smtp_port': st.number_input("SMTP Port", value=587, min_value=1, max_value=65535),
-                'from': st.text_input("From Email", value=""),
-                'password': st.text_input("Password", type="password", value=""),
-                'to': st.text_input("To Email", value=""),
-                'cc': st.text_area("CC Emails (comma-separated)", value="")
-            }
-            st.session_state.email_config = email_config
 
     data_source = "main dashboard (filtered)" if df_mis is not None else None
 
@@ -233,6 +251,8 @@ def render_google_ads_module(engine, df_mis=None):
                         st.success(f"✅ Loaded {len(google_data):,} Google Ads records")
             else:
                 st.error("❌ Database connection not available")
+
+    st.markdown("---")
 
     # Process data
     if df_mis is not None and 'google_campaign_data' in st.session_state:
@@ -551,17 +571,15 @@ def render_google_ads_module(engine, df_mis=None):
                         )
                     with col2:
                         if st.button("📧 Send Report via Email", use_container_width=True):
-                            if 'email_config' in st.session_state:
-                                try:
-                                    with st.spinner("Sending email..."):
-                                        output.seek(0)
-                                        send_email_report(output, st.session_state.email_config)
-                                        st.success("✅ Email sent successfully!")
-                                except Exception as e:
-                                    st.error(f"❌ Error sending email: {e}")
-                            else:
-                                st.error("❌ Email configuration not found")
-                        st.caption("Configure email settings in the sidebar")
+                            try:
+                                with st.spinner("Sending email..."):
+                                    output.seek(0)
+                                    send_email_report(output)
+                                    st.success(f"✅ Email sent successfully to {TO_EMAIL}!")
+                                    st.info(f"📬 CC: {', '.join(CC_EMAILS)}")
+                            except Exception as e:
+                                st.error(f"❌ Error sending email: {e}")
+                        st.caption(f"📧 Email will be sent to: {TO_EMAIL}")
 
         except Exception as e:
             st.error(f"❌ Error processing Google Ads data: {e}")
