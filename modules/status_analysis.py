@@ -58,29 +58,66 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
     """Main render function for status analysis module"""
     st.markdown("## 📊 Final Status Analysis")
 
-    # Check if MIS data exists in session state (from module-specific load)
+    # === Data Source Section ===
+    st.markdown("### 📊 MIS Data Source")
+
+    # Check if MIS data exists from main dashboard
+    if df_mis is not None and 'status_mis_data' in st.session_state:
+        del st.session_state.status_mis_data
+
     if df_mis is None and 'status_mis_data' in st.session_state:
         df_mis = st.session_state.status_mis_data
-        st.info(f"🗄️ Using {len(df_mis):,} MIS records loaded from database")
 
-    # Option to load MIS from database if not provided
-    if db_engine is not None and df_mis is None:
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.info("📊 Load MIS data from database or upload from main dashboard")
-        with col2:
-            if st.button("🗄️ Load MIS from Database", key="load_status_mis_db", use_container_width=True):
+    # Display current status
+    if df_mis is not None:
+        st.success(f"✅ Loaded: {len(df_mis):,} MIS records")
+    else:
+        st.info("ℹ️ No MIS data loaded")
+
+    # MIS data source options
+    mis_source_tab1, mis_source_tab2 = st.tabs(["📁 Upload File", "🗄️ Load from DB"])
+
+    with mis_source_tab1:
+        uploaded_mis = st.file_uploader(
+            "Upload MIS Excel/CSV File",
+            type=['xlsx', 'xls', 'csv'],
+            key="status_mis_file_uploader",
+            help="Upload HDFC MIS data file"
+        )
+        if uploaded_mis:
+            try:
+                if uploaded_mis.name.endswith('.csv'):
+                    df_mis_uploaded = pd.read_csv(uploaded_mis)
+                else:
+                    df_mis_uploaded = pd.read_excel(uploaded_mis)
+
+                df_mis_uploaded.columns = df_mis_uploaded.columns.str.strip()
+                st.session_state.status_mis_data = df_mis_uploaded
+                st.success(f"✅ Uploaded {len(df_mis_uploaded):,} records")
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Error reading file: {str(e)}")
+
+    with mis_source_tab2:
+        if st.button("🗄️ Load MIS from Database", key="status_load_mis_db", use_container_width=True):
+            if db_engine:
                 with st.spinner("Loading MIS data from database..."):
                     try:
-                        query = 'SELECT * FROM "HDFC_MIS_Data"'
-                        df_mis = pd.read_sql(query, db_engine)
-                        df_mis.columns = df_mis.columns.str.strip()
-                        st.session_state.status_mis_data = df_mis
-                        st.success(f"✅ Loaded {len(df_mis):,} records from HDFC_MIS_Data table")
+                        df_mis_loaded = pd.read_sql('SELECT * FROM "HDFC_MIS_Data"', db_engine)
+                        df_mis_loaded.columns = df_mis_loaded.columns.str.strip()
+                        st.session_state.status_mis_data = df_mis_loaded
+                        st.success(f"✅ Loaded {len(df_mis_loaded):,} records from DB")
                         st.rerun()
                     except Exception as e:
-                        st.error(f"❌ Error loading MIS data from database: {e}")
-                        return
+                        st.error(f"❌ Database error: {str(e)[:100]}")
+            else:
+                st.error("❌ Database not available")
+
+    st.markdown("---")
+
+    # Update df_mis from session state if not from main dashboard
+    if df_mis is None and 'status_mis_data' in st.session_state:
+        df_mis = st.session_state.status_mis_data
 
     if df_mis is not None:
         try:
@@ -717,7 +754,7 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
             with st.expander("🔍 View Error Details"):
                 st.exception(e)
     else:
-        st.info("📁 MIS data will be loaded from the main upload section")
+        st.warning("⚠️ Please load MIS data to begin analysis")
 
 
 if __name__ == "__main__":

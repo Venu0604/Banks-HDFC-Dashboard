@@ -252,48 +252,127 @@ def render_campaign_analysis_module(df_mis=None, db_engine=None):
     """Main render function for campaign analysis module"""
     st.markdown("## 📈 Campaign Performance Analysis")
 
-    # Priority: Use filtered data from main dashboard if provided, otherwise use module-specific load
-    data_source = "main dashboard (filtered)" if df_mis is not None else None
+    # === Data Source Section ===
+    st.markdown("### 📊 Data Sources")
 
-    # If data passed from main dashboard, clear module-specific cache to avoid confusion
-    if df_mis is not None and 'campaign_mis_data' in st.session_state:
-        del st.session_state.campaign_mis_data
+    # Two columns: MIS Data and Campaign Data
+    data_col1, data_col2 = st.columns(2)
 
-    # Fall back to module-specific data if no data from main dashboard
+    # === MIS Data Source ===
+    with data_col1:
+        st.markdown("#### 📋 MIS Data")
+
+        # Check if MIS data exists from main dashboard
+        if df_mis is not None and 'campaign_mis_data' in st.session_state:
+            del st.session_state.campaign_mis_data
+
+        if df_mis is None and 'campaign_mis_data' in st.session_state:
+            df_mis = st.session_state.campaign_mis_data
+
+        # Display current status
+        if df_mis is not None:
+            st.success(f"✅ Loaded: {len(df_mis):,} records")
+        else:
+            st.info("ℹ️ No MIS data loaded")
+
+        # MIS data source options
+        mis_source_tab1, mis_source_tab2 = st.tabs(["📁 Upload File", "🗄️ Load from DB"])
+
+        with mis_source_tab1:
+            uploaded_mis = st.file_uploader(
+                "Upload MIS Excel/CSV File",
+                type=['xlsx', 'xls', 'csv'],
+                key="campaign_mis_file_uploader",
+                help="Upload HDFC MIS data file"
+            )
+            if uploaded_mis:
+                try:
+                    if uploaded_mis.name.endswith('.csv'):
+                        df_mis_uploaded = pd.read_csv(uploaded_mis)
+                    else:
+                        df_mis_uploaded = pd.read_excel(uploaded_mis)
+
+                    df_mis_uploaded.columns = df_mis_uploaded.columns.str.strip()
+                    st.session_state.campaign_mis_data = df_mis_uploaded
+                    st.success(f"✅ Uploaded {len(df_mis_uploaded):,} records")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error reading file: {str(e)}")
+
+        with mis_source_tab2:
+            if st.button("🗄️ Load MIS from Database", key="campaign_load_mis_db", use_container_width=True):
+                if db_engine:
+                    with st.spinner("Loading MIS data from database..."):
+                        try:
+                            df_mis_loaded = pd.read_sql('SELECT * FROM "HDFC_MIS_Data"', db_engine)
+                            df_mis_loaded.columns = df_mis_loaded.columns.str.strip()
+                            st.session_state.campaign_mis_data = df_mis_loaded
+                            st.success(f"✅ Loaded {len(df_mis_loaded):,} records from DB")
+                            st.rerun()
+                        except Exception as e:
+                            st.error(f"❌ Database error: {str(e)[:100]}")
+                else:
+                    st.error("❌ Database not available")
+
+    # === Campaign Identifiers Data Source ===
+    with data_col2:
+        st.markdown("#### 🎯 Campaign Identifiers")
+
+        # Display current status
+        if 'campaign_identifiers_data' in st.session_state:
+            st.success(f"✅ Loaded: {len(st.session_state.campaign_identifiers_data):,} campaigns")
+        else:
+            st.info("ℹ️ No campaign data loaded")
+
+        # Campaign data source options
+        campaign_source_tab1, campaign_source_tab2 = st.tabs(["📁 Upload File", "🔗 Load from Sheets"])
+
+        with campaign_source_tab1:
+            uploaded_campaign = st.file_uploader(
+                "Upload Campaign Excel/CSV File",
+                type=['xlsx', 'xls', 'csv'],
+                key="campaign_identifiers_file_uploader",
+                help="Upload campaign identifiers file"
+            )
+            if uploaded_campaign:
+                try:
+                    if uploaded_campaign.name.endswith('.csv'):
+                        df_campaign_uploaded = pd.read_csv(uploaded_campaign)
+                    else:
+                        df_campaign_uploaded = pd.read_excel(uploaded_campaign)
+
+                    df_campaign_uploaded.columns = df_campaign_uploaded.columns.str.strip()
+                    st.session_state.campaign_identifiers_data = df_campaign_uploaded
+                    st.success(f"✅ Uploaded {len(df_campaign_uploaded):,} campaigns")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error reading file: {str(e)}")
+
+        with campaign_source_tab2:
+            sheet_url = st.text_input(
+                "Google Sheets URL (CSV export format)",
+                value="https://docs.google.com/spreadsheets/d/184yquIAWt0XyQEYhI3yv0djg9f6pUtZS7TZ4Un7NLXI/export?format=csv&gid=2141873222",
+                key="campaign_sheet_url"
+            )
+            if st.button("🔗 Load from Google Sheets", key="campaign_load_sheets", use_container_width=True):
+                try:
+                    with st.spinner("Loading from Google Sheets..."):
+                        df_campaign_sheets = pd.read_csv(sheet_url)
+                        df_campaign_sheets.columns = df_campaign_sheets.columns.str.strip()
+                        st.session_state.campaign_identifiers_data = df_campaign_sheets
+                        st.success(f"✅ Loaded {len(df_campaign_sheets):,} campaigns from Sheets")
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error loading from Sheets: {str(e)}")
+
+    st.markdown("---")
+
+    # Update df_mis from session state if not from main dashboard
     if df_mis is None and 'campaign_mis_data' in st.session_state:
         df_mis = st.session_state.campaign_mis_data
-        data_source = "module database"
 
-    # Display data info and load button
-    if df_mis is not None:
-        st.info(f"🗄️ Using {len(df_mis):,} MIS records from {data_source}")
-    elif db_engine is not None:
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.info("📊 Load MIS data from database or upload from main dashboard")
-        with col2:
-            if st.button("🗄️ Load MIS from DB", key="load_campaign_mis_db", use_container_width=True):
-                with st.spinner("Loading..."):
-                    try:
-                        df_mis = pd.read_sql('SELECT * FROM "HDFC_MIS_Data"', db_engine)
-                        df_mis.columns = df_mis.columns.str.strip()
-                        st.session_state.campaign_mis_data = df_mis
-                        st.success(f"✅ Loaded {len(df_mis):,} records (unfiltered)")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"❌ Error: {str(e)[:50]}")
-                        return
-
-    # Load identifiers from Google Sheets
-    sheet_url = "https://docs.google.com/spreadsheets/d/184yquIAWt0XyQEYhI3yv0djg9f6pUtZS7TZ4Un7NLXI/export?format=csv&gid=2141873222"
-
-    try:
-        df_identifiers = pd.read_csv(sheet_url)
-        st.success(f"✅ Loaded {len(df_identifiers):,} campaigns from Google Sheets")
-    except Exception as e:
-        st.error(f"❌ Error loading campaign identifiers: {e}")
-        df_identifiers = None
-        return
+    # Get campaign identifiers
+    df_identifiers = st.session_state.get('campaign_identifiers_data', None)
 
     if df_mis is not None and df_identifiers is not None:
         try:
@@ -768,7 +847,7 @@ def render_campaign_analysis_module(df_mis=None, db_engine=None):
                 st.exception(e)
 
     else:
-        st.warning("⚠️ Please upload the MIS file from the main dashboard to begin analysis")
+        st.warning("⚠️ Please load both MIS Data and Campaign Identifiers to begin analysis")
 
 
 if __name__ == "__main__":
