@@ -115,7 +115,7 @@ def render_sql_console_module(engine):
                             st.text(f"📋 {col_name}")
                             st.caption(f"   {col_type}")
                         with col2:
-                            if st.button("➕", key=f"add_col_{selected_table}_{idx}", help="Add to query"):
+                            if st.button("➕", key=f"add_col_{selected_table}_{idx}"):
                                 # Add column to query
                                 current_query = st.session_state.get('query_input', '')
                                 if 'SELECT' not in current_query.upper():

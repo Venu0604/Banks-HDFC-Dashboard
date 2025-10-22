@@ -377,7 +377,6 @@ def render_google_ads_module(engine, df_mis=None):
                                     "Filter by Final Decision (Global):",
                                     options=all_decisions,
                                     default=all_decisions,
-                                    help="Global filter - applies to all visualizations",
                                     key="google_global_decision"
                                 )
                             else:
@@ -388,7 +387,6 @@ def render_google_ads_module(engine, df_mis=None):
                                 "Filter by MIS Match (Global):",
                                 options=["Yes", "No"],
                                 default=["Yes", "No"],
-                                help="Global filter - applies to all visualizations",
                                 key="google_global_mis"
                             )
 
@@ -563,8 +561,7 @@ def render_google_ads_module(engine, df_mis=None):
                             selected_pivot_cols = st.multiselect(
                                 "Select decision statuses to plot:",
                                 options=available_cols,
-                                default=available_cols,
-                                help="Choose which decision statuses to show in the trend chart"
+                                default=available_cols
                             )
 
                         st.dataframe(pivot_df, use_container_width=True)

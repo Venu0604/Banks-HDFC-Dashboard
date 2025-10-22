@@ -675,7 +675,7 @@ def main():
         # Top bar with SQL Console button
         col_sql, col_spacer = st.columns([1, 5])
         with col_sql:
-            if st.button("💻 SQL Console", key="sql_btn", help="Execute SQL queries"):
+            if st.button("💻 SQL Console", key="sql_btn"):
                 st.session_state.selected_module = "sql"
                 st.rerun()
 

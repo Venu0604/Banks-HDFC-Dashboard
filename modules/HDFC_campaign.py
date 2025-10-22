@@ -538,7 +538,7 @@ def render_campaign_analysis_module(df_mis=None, db_engine=None):
                         "Filter by Channel (Global):",
                         options=df_summary["Channel"].unique().tolist(),
                         default=df_summary["Channel"].unique().tolist(),
-                        help="Global filter - applies to all visualizations",
+                        
                         key="global_channel_filter"
                     )
 
@@ -547,7 +547,7 @@ def render_campaign_analysis_module(df_mis=None, db_engine=None):
                         "Filter by Final Decision (Global):",
                         options=["Card Out", "Declined", "Inprogress", "IPA Approved"],
                         default=["Card Out", "Declined", "Inprogress", "IPA Approved"],
-                        help="Global filter - applies to all visualizations",
+                        
                         key="global_decision_filter"
                     )
 

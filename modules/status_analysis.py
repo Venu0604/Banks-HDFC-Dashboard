@@ -375,7 +375,7 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
                                 "Select statuses:",
                                 options=['Card Out', 'Declined', 'Inprogress', 'Other'],
                                 default=['Card Out', 'Declined', 'Inprogress', 'Other'],
-                                help="Choose which statuses to show",
+                                
                                 key="pie_status_filter"
                             )
 
@@ -502,7 +502,7 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
                                 "Funnel stages:",
                                 options=["Total Applications", "IPA Approved", "Card Out"],
                                 default=["Total Applications", "IPA Approved", "Card Out"],
-                                help="Choose stages for the conversion funnel",
+                                
                                 key="funnel_stages"
                             )
 
@@ -550,7 +550,7 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
                                 custom_category_col = st.selectbox(
                                     "Select column:",
                                     options=['None'] + categorical_cols,
-                                    help="Select a column to create breakdown chart",
+                                    
                                     key="custom_category_col"
                                 )
                             else:
@@ -636,7 +636,7 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
                             "Select columns to display:",
                             options=all_cols,
                             default=[col for col in default_cols if col in all_cols],
-                            help="Choose which columns you want to see in the table"
+                            
                         )
 
                     with col_select2:
@@ -659,7 +659,7 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
                             selected_status = st.multiselect(
                                 f"Filter {final_status_col}:",
                                 options=unique_values,
-                                help="Select one or more values to filter"
+                                
                             )
                             if selected_status:
                                 display_df = display_df[display_df[final_status_col].isin(selected_status)]
@@ -670,7 +670,7 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
                             selected_ipa = st.multiselect(
                                 f"Filter {ipa_status_col}:",
                                 options=unique_values,
-                                help="Select one or more values to filter"
+                                
                             )
                             if selected_ipa:
                                 display_df = display_df[display_df[ipa_status_col].isin(selected_ipa)]
@@ -681,7 +681,7 @@ def render_status_analysis_module(df_mis=None, db_engine=None):
                             selected_mapped = st.multiselect(
                                 "Filter Status Category:",
                                 options=unique_values,
-                                help="Select one or more values to filter"
+                                
                             )
                             if selected_mapped:
                                 display_df = display_df[display_df['mapped_status'].isin(selected_mapped)]
