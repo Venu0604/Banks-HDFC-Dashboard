@@ -82,7 +82,7 @@ st.markdown("""<style>
 /* ---- Typography ---- */
 h1, h2, h3, h4, h5, h6 {
     font-weight: 700 !important;
-    color: var(--foreground) !important;
+    color: hsl(210, 40%, 98%) !important;
 }
 
 h1 {
@@ -98,6 +98,7 @@ h2 {
     font-size: 2rem !important;
     margin-top: 1rem !important;
     margin-bottom: 0.75rem !important;
+    color: hsl(210, 40%, 95%) !important;
 }
 
 h3 {
@@ -105,15 +106,17 @@ h3 {
     font-weight: 600 !important;
     margin-top: 0.75rem !important;
     margin-bottom: 0.5rem !important;
+    color: hsl(210, 40%, 92%) !important;
 }
 
 h4 {
     font-size: 1.2rem !important;
     font-weight: 600 !important;
+    color: hsl(210, 40%, 90%) !important;
 }
 
 p, span, label, li {
-    color: var(--muted-foreground) !important;
+    color: hsl(215, 20%, 85%) !important;
 }
 
 /* ---- Cards & Containers ---- */
@@ -452,13 +455,13 @@ div[data-testid="column"] {
 
 /* ---- Caption Text ---- */
 .caption, [data-testid="stCaptionContainer"] {
-    color: var(--muted-foreground) !important;
+    color: hsl(215, 20%, 80%) !important;
     font-size: 0.875rem !important;
 }
 
 /* ---- Markdown Styling ---- */
 .stMarkdown {
-    color: var(--foreground) !important;
+    color: hsl(210, 40%, 95%) !important;
 }
 
 .stMarkdown a {
@@ -469,6 +472,11 @@ div[data-testid="column"] {
 
 .stMarkdown a:hover {
     text-decoration: underline !important;
+}
+
+/* ---- Make all text bright and visible ---- */
+div, p, span, label, input, textarea, select {
+    color: hsl(210, 40%, 90%) !important;
 }
 </style>""", unsafe_allow_html=True)
 
@@ -526,7 +534,7 @@ def render_header():
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
             ">🏦 HDFC Analytics Dashboard</h1>
-            <p style="margin: 0.5rem 0 0 0; color: hsl(215, 20%, 80%); font-size: 0.95rem;">
+            <p style="margin: 0.5rem 0 0 0; color: hsl(210, 40%, 90%); font-size: 0.95rem;">
                 Unified Campaign Intelligence Platform
             </p>
         </div>
