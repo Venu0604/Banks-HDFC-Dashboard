@@ -28,7 +28,6 @@ dist/
 *.swp
 *.swo
 *~
-.claude/
 
 # Data files
 *.csv
@@ -47,7 +46,20 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+*.bak
+*.tmp
 
 # Test files
 test/
 tests/
+
+# Design/Template directories
+design-reboot-*/
+design-*/
+templates/
+prototypes/
+
+# Node modules (if any React/JS projects are added)
+node_modules/
+package-lock.json
+*.lock
