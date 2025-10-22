@@ -511,29 +511,13 @@ def auto_load_data(engine):
 
 def render_header():
     """Render modern dashboard header"""
-    # Show data status in header
-    data_info = ""
+    # Show data status badge
+    data_badge = ""
     if st.session_state.mis_data is not None:
         record_count = len(st.session_state.mis_data)
-        source = st.session_state.mis_source or "unknown"
-        data_info = f"""
-            <div style="
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-                background: rgba(34, 197, 94, 0.15);
-                padding: 0.4rem 0.8rem;
-                border-radius: 0.5rem;
-                border: 1px solid rgba(34, 197, 94, 0.3);
-                margin-left: 1rem;
-            ">
-                <span style="font-size: 0.75rem; color: hsl(142, 71%, 55%);">
-                    📊 {record_count:,} records loaded
-                </span>
-            </div>
-        """
+        data_badge = f'<span style="font-size: 0.65rem; background: rgba(34, 197, 94, 0.2); color: hsl(142, 71%, 60%); padding: 0.3rem 0.6rem; border-radius: 0.4rem; border: 1px solid rgba(34, 197, 94, 0.4); margin-left: 0.75rem; white-space: nowrap;">📊 {record_count:,} records</span>'
 
-    st.markdown(f"""
+    header_html = f"""
         <div style="
             background: linear-gradient(135deg, hsl(217, 33%, 17%), hsl(217, 32%, 20%));
             padding: 1.5rem 2rem;
@@ -542,7 +526,7 @@ def render_header():
             margin-bottom: 2rem;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
         ">
-            <div style="display: flex; align-items: center; gap: 1rem;">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 1rem;">
                 <div style="
                     width: 50px;
                     height: 50px;
@@ -550,23 +534,27 @@ def render_header():
                     border-radius: 0.75rem;
                     display: flex;
                     align-items: center;
-                    justify-center;
+                    justify-content: center;
                     font-size: 1.5rem;
                 ">
                     🏦
                 </div>
-                <div style="flex: 1;">
-                    <div style="display: flex; align-items: center;">
-                        <h1 style="margin: 0; font-size: 1.8rem;">HDFC Analytics Dashboard</h1>
-                        {data_info}
+                <div style="text-align: center;">
+                    <div style="display: flex; align-items: center; justify-content: center;">
+                        <h1 style="margin: 0; font-size: 1.8rem; background: linear-gradient(135deg, hsl(250, 70%, 65%), hsl(270, 60%, 60%)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                            HDFC Analytics Dashboard
+                        </h1>
+                        {data_badge}
                     </div>
-                    <p style="margin: 0; color: hsl(215, 20%, 65%); font-size: 0.875rem;">
+                    <p style="margin: 0.25rem 0 0 0; color: hsl(215, 20%, 65%); font-size: 0.875rem;">
                         Unified Campaign Intelligence Platform
                     </p>
                 </div>
             </div>
         </div>
-    """, unsafe_allow_html=True)
+    """
+
+    st.markdown(header_html, unsafe_allow_html=True)
 
 
 def render_module_card(title, description, icon, module_key):
