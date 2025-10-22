@@ -116,7 +116,7 @@ h4 {
 }
 
 p, span, label, li {
-    color: hsl(215, 20%, 85%) !important;
+    color: hsl(215, 20%, 92%) !important;
 }
 
 /* ---- Cards & Containers ---- */
@@ -455,7 +455,7 @@ div[data-testid="column"] {
 
 /* ---- Caption Text ---- */
 .caption, [data-testid="stCaptionContainer"] {
-    color: hsl(215, 20%, 80%) !important;
+    color: hsl(215, 20%, 88%) !important;
     font-size: 0.875rem !important;
 }
 
@@ -476,7 +476,13 @@ div[data-testid="column"] {
 
 /* ---- Make all text bright and visible ---- */
 div, p, span, label, input, textarea, select {
-    color: hsl(210, 40%, 90%) !important;
+    color: hsl(210, 40%, 94%) !important;
+}
+
+/* ---- Small Buttons ---- */
+.stButton>button.small-btn {
+    font-size: 0.75rem !important;
+    padding: 0.4rem 0.8rem !important;
 }
 </style>""", unsafe_allow_html=True)
 
@@ -534,7 +540,7 @@ def render_header():
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
             ">🏦 HDFC Analytics Dashboard</h1>
-            <p style="margin: 0.5rem 0 0 0; color: hsl(210, 40%, 90%); font-size: 0.95rem;">
+            <p style="margin: 0.5rem 0 0 0; color: hsl(210, 40%, 94%); font-size: 0.95rem;">
                 Unified Campaign Intelligence Platform
             </p>
         </div>
@@ -665,11 +671,25 @@ def main():
     # Module Routing
     if module is None:
         # ===== HOME PAGE =====
+
+        # Top bar with SQL Console button
+        col_sql, col_spacer = st.columns([1, 5])
+        with col_sql:
+            if st.button("💻 SQL Console", key="sql_btn", help="Execute SQL queries"):
+                st.session_state.selected_module = "sql"
+                st.rerun()
+
         st.markdown("## 📊 Analytics Modules")
         st.markdown("Select a module to access campaign analytics, data processing, and reporting tools")
+
+        # MIS Upload Expander
+        with st.expander("📤 MIS Data Upload", expanded=False):
+            st.markdown("Upload and manage MIS data from Excel/CSV files to database")
+            Input_MIS.render_mis_upload_module(engine)
+
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Module Grid (2 columns)
+        # Module Grid (2 columns) - Only 4 cards now
         col1, col2 = st.columns(2)
 
         with col1:
@@ -687,6 +707,19 @@ def main():
 
             st.markdown("<br>", unsafe_allow_html=True)
 
+            with st.container():
+                st.markdown("""
+                    <div class="module-card">
+                """, unsafe_allow_html=True)
+                render_module_card(
+                    "Campaign Analysis",
+                    "Analyze campaign performance across multiple channels with cost tracking",
+                    "🎯",
+                    "campaign"
+                )
+                st.markdown("</div>", unsafe_allow_html=True)
+
+        with col2:
             with st.container():
                 st.markdown("""
                     <div class="module-card">
@@ -710,47 +743,6 @@ def main():
                     "Extract and map phone numbers from campaign data using LC2 codes",
                     "📞",
                     "phone"
-                )
-                st.markdown("</div>", unsafe_allow_html=True)
-
-        with col2:
-            with st.container():
-                st.markdown("""
-                    <div class="module-card">
-                """, unsafe_allow_html=True)
-                render_module_card(
-                    "Campaign Analysis",
-                    "Analyze campaign performance across multiple channels with cost tracking",
-                    "🎯",
-                    "campaign"
-                )
-                st.markdown("</div>", unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-
-            with st.container():
-                st.markdown("""
-                    <div class="module-card">
-                """, unsafe_allow_html=True)
-                render_module_card(
-                    "MIS Upload",
-                    "Upload and manage MIS data from Excel/CSV files to database",
-                    "📤",
-                    "upload"
-                )
-                st.markdown("</div>", unsafe_allow_html=True)
-
-            st.markdown("<br>", unsafe_allow_html=True)
-
-            with st.container():
-                st.markdown("""
-                    <div class="module-card">
-                """, unsafe_allow_html=True)
-                render_module_card(
-                    "SQL Console",
-                    "Execute SQL queries and export data directly from the database",
-                    "💻",
-                    "sql"
                 )
                 st.markdown("</div>", unsafe_allow_html=True)
 
