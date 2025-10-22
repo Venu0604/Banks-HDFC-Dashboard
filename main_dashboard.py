@@ -526,7 +526,7 @@ def render_header():
                 -webkit-text-fill-color: transparent;
                 background-clip: text;
             ">🏦 HDFC Analytics Dashboard</h1>
-            <p style="margin: 0.5rem 0 0 0; color: hsl(215, 20%, 65%); font-size: 0.95rem;">
+            <p style="margin: 0.5rem 0 0 0; color: hsl(215, 20%, 80%); font-size: 0.95rem;">
                 Unified Campaign Intelligence Platform
             </p>
         </div>
@@ -657,63 +657,6 @@ def main():
     # Module Routing
     if module is None:
         # ===== HOME PAGE =====
-
-        # Data Management Section
-        if st.session_state.mis_data is not None:
-            col1, col2, col3 = st.columns([2, 1, 1])
-
-            with col1:
-                st.markdown("### 💾 Data Status")
-                st.info(f"""
-                    📊 **{len(st.session_state.mis_data):,}** MIS records loaded
-                    📁 Source: **{st.session_state.mis_source or 'Unknown'}**
-                    🏷️ Filename: **{st.session_state.mis_filename or 'N/A'}**
-                """)
-
-            with col2:
-                if st.button("🔄 Reload from DB", use_container_width=True, help="Refresh data from database"):
-                    if engine:
-                        with st.spinner("Reloading..."):
-                            # Clear cache and reload
-                            load_mis_data_from_db.clear()
-                            df, error = load_mis_data_from_db(engine)
-                            if df is not None:
-                                st.session_state.mis_data = df
-                                st.session_state.mis_filename = "Database (Reloaded)"
-                                st.session_state.mis_source = "database"
-                                st.success(f"✅ Reloaded {len(df):,} records")
-                                st.rerun()
-                            else:
-                                st.error(f"❌ Error: {error}")
-                    else:
-                        st.error("❌ Database not available")
-
-            with col3:
-                if st.button("🗑️ Clear Data", use_container_width=True, help="Clear loaded data"):
-                    st.session_state.mis_data = None
-                    st.session_state.mis_filename = None
-                    st.session_state.mis_source = None
-                    st.session_state.auto_load_attempted = False
-                    st.rerun()
-        else:
-            st.info("ℹ️ No MIS data loaded. Data will auto-load from database on next refresh if available.")
-            if st.button("📥 Load from Database Now", use_container_width=False):
-                if engine:
-                    with st.spinner("Loading..."):
-                        df, error = load_mis_data_from_db(engine)
-                        if df is not None:
-                            st.session_state.mis_data = df
-                            st.session_state.mis_filename = "Database"
-                            st.session_state.mis_source = "database"
-                            st.success(f"✅ Loaded {len(df):,} records")
-                            st.rerun()
-                        else:
-                            st.error(f"❌ Error: {error}")
-                else:
-                    st.error("❌ Database not available")
-
-        st.markdown("---")
-
         st.markdown("## 📊 Analytics Modules")
         st.markdown("Select a module to access campaign analytics, data processing, and reporting tools")
         st.markdown("<br>", unsafe_allow_html=True)
@@ -802,9 +745,6 @@ def main():
                     "sql"
                 )
                 st.markdown("</div>", unsafe_allow_html=True)
-
-        # System Status
-        render_system_status(db_connected)
 
     elif module == "google":
         google_summary.render_google_ads_module(engine, st.session_state.mis_data)
