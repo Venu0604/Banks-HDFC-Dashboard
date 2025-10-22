@@ -203,157 +203,121 @@ Venugopal"""
 def render_google_ads_module(engine, df_mis=None):
     """Main render function for Google Ads module"""
     st.markdown("## 🎯 Google Ads Campaign Summary")
-    st.info("📊 Process Google Ads campaigns and generate detailed MIS reports")
 
     # === Data Source Section ===
-    st.markdown("### 📊 Data Sources")
+    with st.expander("📊 Data Sources", expanded=False):
+        # Two columns: MIS Data and Campaign Data
+        data_col1, data_col2 = st.columns(2)
 
-    # Two columns: MIS Data and Campaign Data
-    data_col1, data_col2 = st.columns(2)
+        # === MIS Data Source ===
+        with data_col1:
+            st.markdown("#### 📋 MIS Data")
 
-    # === MIS Data Source ===
-    with data_col1:
-        st.markdown("#### 📋 MIS Data")
+            # Track data source type
+            if 'google_mis_source' not in st.session_state:
+                st.session_state.google_mis_source = None
 
-        # Track data source type
-        if 'google_mis_source' not in st.session_state:
-            st.session_state.google_mis_source = None
+            # Check if MIS data exists from main dashboard
+            if df_mis is not None and 'google_mis_data' in st.session_state:
+                del st.session_state.google_mis_data
+                st.session_state.google_mis_source = None
 
-        # Check if MIS data exists from main dashboard
-        if df_mis is not None and 'google_mis_data' in st.session_state:
-            del st.session_state.google_mis_data
-            st.session_state.google_mis_source = None
+            if df_mis is None and 'google_mis_data' in st.session_state:
+                df_mis = st.session_state.google_mis_data
 
-        if df_mis is None and 'google_mis_data' in st.session_state:
-            df_mis = st.session_state.google_mis_data
+            # MIS data source options
+            mis_source_tab1, mis_source_tab2 = st.tabs(["📁 Upload", "🗄️ Database"])
 
-        # Display current status with source info
-        if df_mis is not None:
-            source_text = f" (from {st.session_state.google_mis_source})" if st.session_state.google_mis_source else ""
-            st.success(f"✅ Loaded: {len(df_mis):,} records{source_text}")
-        else:
-            st.info("ℹ️ No MIS data loaded")
+            with mis_source_tab1:
+                uploaded_mis = st.file_uploader(
+                    "Upload MIS File",
+                    type=['xlsx', 'xls', 'csv'],
+                    key="mis_file_uploader"
+                )
+                if uploaded_mis:
+                    try:
+                        if uploaded_mis.name.endswith('.csv'):
+                            df_mis_uploaded = pd.read_csv(uploaded_mis)
+                        else:
+                            df_mis_uploaded = pd.read_excel(uploaded_mis)
 
-        # MIS data source options
-        mis_source_tab1, mis_source_tab2 = st.tabs(["📁 Upload File", "🗄️ Load from DB"])
+                        df_mis_uploaded.columns = df_mis_uploaded.columns.str.strip()
+                        st.session_state.google_mis_data = df_mis_uploaded
+                        st.session_state.google_mis_source = "uploaded file"
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
 
-        with mis_source_tab1:
-            uploaded_mis = st.file_uploader(
-                "Upload MIS Excel/CSV File",
-                type=['xlsx', 'xls', 'csv'],
-                key="mis_file_uploader",
-                help="Upload HDFC MIS data file (takes priority over database)"
-            )
-            if uploaded_mis:
-                try:
-                    if uploaded_mis.name.endswith('.csv'):
-                        df_mis_uploaded = pd.read_csv(uploaded_mis)
-                    else:
-                        df_mis_uploaded = pd.read_excel(uploaded_mis)
-
-                    df_mis_uploaded.columns = df_mis_uploaded.columns.str.strip()
-                    st.session_state.google_mis_data = df_mis_uploaded
-                    st.session_state.google_mis_source = "uploaded file"
-                    st.success(f"✅ Uploaded {len(df_mis_uploaded):,} records (file upload takes priority)")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Error reading file: {str(e)}")
-
-        with mis_source_tab2:
-            # Disable database load if file is uploaded
-            if st.session_state.google_mis_source == "uploaded file":
-                st.warning("⚠️ File uploaded - database loading disabled. Remove file to use database.")
-                st.button("🗄️ Load MIS from Database", key="load_mis_db", use_container_width=True, disabled=True)
-            else:
-                if st.button("🗄️ Load MIS from Database", key="load_mis_db", use_container_width=True):
+            with mis_source_tab2:
+                if st.button("🗄️ Load from Database", key="load_mis_db", use_container_width=True):
                     if engine:
-                        with st.spinner("Loading MIS data from database..."):
+                        with st.spinner("Loading..."):
                             try:
                                 df_mis_loaded = pd.read_sql('SELECT * FROM "HDFC_MIS_Data"', engine)
                                 df_mis_loaded.columns = df_mis_loaded.columns.str.strip()
                                 st.session_state.google_mis_data = df_mis_loaded
                                 st.session_state.google_mis_source = "database"
-                                st.success(f"✅ Loaded {len(df_mis_loaded):,} records from DB")
                                 st.rerun()
                             except Exception as e:
-                                st.error(f"❌ Database error: {str(e)[:100]}")
+                                st.error(f"❌ Error: {str(e)[:100]}")
                     else:
                         st.error("❌ Database not available")
 
-    # === Campaign Data Source ===
-    with data_col2:
-        st.markdown("#### 🎯 Campaign Data")
+        # === Campaign Data Source ===
+        with data_col2:
+            st.markdown("#### 🎯 Campaign Data")
 
-        # Track campaign data source type
-        if 'google_campaign_source' not in st.session_state:
-            st.session_state.google_campaign_source = None
+            # Track campaign data source type
+            if 'google_campaign_source' not in st.session_state:
+                st.session_state.google_campaign_source = None
 
-        # Display current status with source info
-        if 'google_campaign_data' in st.session_state:
-            source_text = f" (from {st.session_state.google_campaign_source})" if st.session_state.google_campaign_source else ""
-            st.success(f"✅ Loaded: {len(st.session_state.google_campaign_data):,} records{source_text}")
-        else:
-            st.info("ℹ️ No campaign data loaded")
+            # Campaign data source options
+            campaign_source_tab1, campaign_source_tab2 = st.tabs(["📁 Upload", "🗄️ Database"])
 
-        # Campaign data source options
-        campaign_source_tab1, campaign_source_tab2 = st.tabs(["📁 Upload File", "🗄️ Load from DB"])
+            with campaign_source_tab1:
+                uploaded_campaign = st.file_uploader(
+                    "Upload Campaign File",
+                    type=['xlsx', 'xls', 'csv'],
+                    key="campaign_file_uploader"
+                )
+                if uploaded_campaign:
+                    try:
+                        if uploaded_campaign.name.endswith('.csv'):
+                            df_campaign_uploaded = pd.read_csv(uploaded_campaign)
+                        else:
+                            df_campaign_uploaded = pd.read_excel(uploaded_campaign)
 
-        with campaign_source_tab1:
-            uploaded_campaign = st.file_uploader(
-                "Upload Campaign Excel/CSV File",
-                type=['xlsx', 'xls', 'csv'],
-                key="campaign_file_uploader",
-                help="Upload Google Ads campaign data file (takes priority over database)"
-            )
-            if uploaded_campaign:
-                try:
-                    if uploaded_campaign.name.endswith('.csv'):
-                        df_campaign_uploaded = pd.read_csv(uploaded_campaign)
-                    else:
-                        df_campaign_uploaded = pd.read_excel(uploaded_campaign)
+                        df_campaign_uploaded.columns = df_campaign_uploaded.columns.str.strip()
 
-                    df_campaign_uploaded.columns = df_campaign_uploaded.columns.str.strip()
+                        # Filter for Google Ads campaigns if lead_utm_source exists
+                        if 'lead_utm_source' in df_campaign_uploaded.columns:
+                            df_campaign_filtered = df_campaign_uploaded[
+                                df_campaign_uploaded["lead_utm_source"].astype(str).str.strip().str.lower().isin([
+                                    "ad_cc", "adword_cc", "hdcc_cc", "hdcc_cn"
+                                ])
+                            ]
+                            st.session_state.google_campaign_data = df_campaign_filtered
+                        else:
+                            st.session_state.google_campaign_data = df_campaign_uploaded
 
-                    # Filter for Google Ads campaigns if lead_utm_source exists
-                    if 'lead_utm_source' in df_campaign_uploaded.columns:
-                        df_campaign_filtered = df_campaign_uploaded[
-                            df_campaign_uploaded["lead_utm_source"].astype(str).str.strip().str.lower().isin([
-                                "ad_cc", "adword_cc", "hdcc_cc", "hdcc_cn"
-                            ])
-                        ]
-                        st.session_state.google_campaign_data = df_campaign_filtered
                         st.session_state.google_campaign_source = "uploaded file"
-                        st.success(f"✅ Uploaded {len(df_campaign_filtered):,} Google Ads records (file upload takes priority)")
-                    else:
-                        st.session_state.google_campaign_data = df_campaign_uploaded
-                        st.session_state.google_campaign_source = "uploaded file"
-                        st.success(f"✅ Uploaded {len(df_campaign_uploaded):,} records (file upload takes priority)")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Error: {str(e)}")
 
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"❌ Error reading file: {str(e)}")
-
-        with campaign_source_tab2:
-            # Disable database load if file is uploaded
-            if st.session_state.google_campaign_source == "uploaded file":
-                st.warning("⚠️ File uploaded - database loading disabled. Remove file to use database.")
-                st.button("🗄️ Load Campaign from Database", key="load_campaign_db", use_container_width=True, disabled=True)
-            else:
-                if st.button("🗄️ Load Campaign from Database", key="load_campaign_db", use_container_width=True):
+            with campaign_source_tab2:
+                if st.button("🗄️ Load from Database", key="load_campaign_db", use_container_width=True):
                     if engine:
-                        with st.spinner("Loading campaign data from database..."):
+                        with st.spinner("Loading..."):
                             google_data, error = load_google_ads_data(engine)
                             if error:
-                                st.error(f"❌ Database error: {error}")
+                                st.error(f"❌ Error: {error}")
                             else:
                                 st.session_state.google_campaign_data = google_data
                                 st.session_state.google_campaign_source = "database"
-                                st.success(f"✅ Loaded {len(google_data):,} Google Ads records from DB")
                                 st.rerun()
                     else:
                         st.error("❌ Database not available")
-
-    st.markdown("---")
 
     # Update df_mis from session state if not from main dashboard
     if df_mis is None and 'google_mis_data' in st.session_state:
