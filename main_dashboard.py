@@ -475,9 +475,65 @@ div[data-testid="column"] {
 # -------------------------
 # Helper Functions
 # -------------------------
+@st.cache_data(ttl=3600, show_spinner=False)  # Cache for 1 hour
+def load_mis_data_from_db(_engine):
+    """Load MIS data from database with caching"""
+    import pandas as pd
+
+    try:
+        df = pd.read_sql('SELECT * FROM "HDFC_MIS_Data"', _engine)
+        df.columns = df.columns.str.strip()
+        return df, None
+    except Exception as e:
+        return None, str(e)
+
+
+def auto_load_data(engine):
+    """Automatically load MIS data from database on startup if not already loaded"""
+    # Only load if data is not already in session state
+    if st.session_state.mis_data is None and engine is not None:
+        # Check if we should auto-load (only on first run)
+        if 'auto_load_attempted' not in st.session_state:
+            st.session_state.auto_load_attempted = True
+
+            with st.spinner("🔄 Loading MIS data from database..."):
+                df, error = load_mis_data_from_db(engine)
+
+                if df is not None and len(df) > 0:
+                    st.session_state.mis_data = df
+                    st.session_state.mis_filename = "Database (Auto-loaded)"
+                    st.session_state.mis_source = "database"
+                    st.success(f"✅ Auto-loaded {len(df):,} MIS records from database")
+                elif error:
+                    st.session_state.auto_load_attempted = False  # Allow retry
+                    st.warning(f"⚠️ Could not auto-load data: {error[:100]}")
+
+
 def render_header():
     """Render modern dashboard header"""
-    st.markdown("""
+    # Show data status in header
+    data_info = ""
+    if st.session_state.mis_data is not None:
+        record_count = len(st.session_state.mis_data)
+        source = st.session_state.mis_source or "unknown"
+        data_info = f"""
+            <div style="
+                display: inline-flex;
+                align-items: center;
+                gap: 0.5rem;
+                background: rgba(34, 197, 94, 0.15);
+                padding: 0.4rem 0.8rem;
+                border-radius: 0.5rem;
+                border: 1px solid rgba(34, 197, 94, 0.3);
+                margin-left: 1rem;
+            ">
+                <span style="font-size: 0.75rem; color: hsl(142, 71%, 55%);">
+                    📊 {record_count:,} records loaded
+                </span>
+            </div>
+        """
+
+    st.markdown(f"""
         <div style="
             background: linear-gradient(135deg, hsl(217, 33%, 17%), hsl(217, 32%, 20%));
             padding: 1.5rem 2rem;
@@ -499,8 +555,11 @@ def render_header():
                 ">
                     🏦
                 </div>
-                <div>
-                    <h1 style="margin: 0; font-size: 1.8rem;">HDFC Analytics Dashboard</h1>
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center;">
+                        <h1 style="margin: 0; font-size: 1.8rem;">HDFC Analytics Dashboard</h1>
+                        {data_info}
+                    </div>
                     <p style="margin: 0; color: hsl(215, 20%, 65%); font-size: 0.875rem;">
                         Unified Campaign Intelligence Platform
                     </p>
@@ -544,6 +603,11 @@ def render_system_status(db_connected):
     status_icon = "🟢" if db_connected else "🔴"
     status_text = "Connected" if db_connected else "Disconnected"
 
+    # Data status
+    data_loaded = st.session_state.mis_data is not None
+    data_icon = "🟢" if data_loaded else "🟡"
+    data_text = f"Loaded ({len(st.session_state.mis_data):,} records)" if data_loaded else "Not loaded"
+
     st.markdown(f"""
         <div style="
             background: linear-gradient(135deg, hsl(217, 33%, 17%), hsl(217, 32%, 20%));
@@ -559,12 +623,12 @@ def render_system_status(db_connected):
                     <span style="color: hsl(215, 20%, 65%);">Database: {status_text}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    🟢
-                    <span style="color: hsl(215, 20%, 65%);">Analytics Engine: Active</span>
+                    {data_icon}
+                    <span style="color: hsl(215, 20%, 65%);">MIS Data: {data_text}</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
                     🟢
-                    <span style="color: hsl(215, 20%, 65%);">Data Pipeline: Running</span>
+                    <span style="color: hsl(215, 20%, 65%);">Analytics Engine: Active</span>
                 </div>
             </div>
         </div>
@@ -583,6 +647,7 @@ def main():
         ('mis_data', None),
         ('mis_filename', None),
         ('mis_source', None),
+        ('auto_load_attempted', False),
     ]:
         if key not in st.session_state:
             st.session_state[key] = default
@@ -590,6 +655,9 @@ def main():
     # Database connection
     engine, _ = get_db_engine()
     db_connected = engine is not None
+
+    # Auto-load data from database on first run
+    auto_load_data(engine)
 
     # Render Header
     render_header()
@@ -607,6 +675,63 @@ def main():
     # Module Routing
     if module is None:
         # ===== HOME PAGE =====
+
+        # Data Management Section
+        if st.session_state.mis_data is not None:
+            col1, col2, col3 = st.columns([2, 1, 1])
+
+            with col1:
+                st.markdown("### 💾 Data Status")
+                st.info(f"""
+                    📊 **{len(st.session_state.mis_data):,}** MIS records loaded
+                    📁 Source: **{st.session_state.mis_source or 'Unknown'}**
+                    🏷️ Filename: **{st.session_state.mis_filename or 'N/A'}**
+                """)
+
+            with col2:
+                if st.button("🔄 Reload from DB", use_container_width=True, help="Refresh data from database"):
+                    if engine:
+                        with st.spinner("Reloading..."):
+                            # Clear cache and reload
+                            load_mis_data_from_db.clear()
+                            df, error = load_mis_data_from_db(engine)
+                            if df is not None:
+                                st.session_state.mis_data = df
+                                st.session_state.mis_filename = "Database (Reloaded)"
+                                st.session_state.mis_source = "database"
+                                st.success(f"✅ Reloaded {len(df):,} records")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ Error: {error}")
+                    else:
+                        st.error("❌ Database not available")
+
+            with col3:
+                if st.button("🗑️ Clear Data", use_container_width=True, help="Clear loaded data"):
+                    st.session_state.mis_data = None
+                    st.session_state.mis_filename = None
+                    st.session_state.mis_source = None
+                    st.session_state.auto_load_attempted = False
+                    st.rerun()
+        else:
+            st.info("ℹ️ No MIS data loaded. Data will auto-load from database on next refresh if available.")
+            if st.button("📥 Load from Database Now", use_container_width=False):
+                if engine:
+                    with st.spinner("Loading..."):
+                        df, error = load_mis_data_from_db(engine)
+                        if df is not None:
+                            st.session_state.mis_data = df
+                            st.session_state.mis_filename = "Database"
+                            st.session_state.mis_source = "database"
+                            st.success(f"✅ Loaded {len(df):,} records")
+                            st.rerun()
+                        else:
+                            st.error(f"❌ Error: {error}")
+                else:
+                    st.error("❌ Database not available")
+
+        st.markdown("---")
+
         st.markdown("## 📊 Analytics Modules")
         st.markdown("Select a module to access campaign analytics, data processing, and reporting tools")
         st.markdown("<br>", unsafe_allow_html=True)
